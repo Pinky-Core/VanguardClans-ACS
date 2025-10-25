@@ -1,20 +1,20 @@
-package me.lewisainsworth.satipoclans.Utils;
+package me.lewisainsworth.vanguardclans.Utils;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import me.lewisainsworth.satipoclans.SatipoClan;
+import me.lewisainsworth.vanguardclans.VanguardClan;
 
 import java.io.File;
 import java.io.IOException;
 
 public class FileHandler {
-    private SatipoClan plugin;
+    private VanguardClan plugin;
     private FileConfiguration dataFileConfig = null;
     private final File dataFile;
     private FileConfiguration configFileConfig = null;
     private final File configFile;
 
-    public FileHandler(SatipoClan plugin) {
+    public FileHandler(VanguardClan plugin) {
         this.plugin = plugin;
         this.dataFile = new File(plugin.getDataFolder(), "data.yml");
         this.configFile = new File(plugin.getDataFolder(), "config.yml");

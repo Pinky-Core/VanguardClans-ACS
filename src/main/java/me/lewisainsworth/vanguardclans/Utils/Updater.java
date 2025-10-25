@@ -1,6 +1,6 @@
-package me.lewisainsworth.satipoclans.Utils;
+package me.lewisainsworth.vanguardclans.Utils;
 
-import me.lewisainsworth.satipoclans.SatipoClan;
+import me.lewisainsworth.vanguardclans.VanguardClan;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,10 +9,10 @@ import java.net.URL;
 import java.util.Scanner;
 
 public class Updater {
-    private final SatipoClan plugin;
+    private final VanguardClan plugin;
     private final int resourceId;
 
-    public Updater(SatipoClan plugin, int resourceId) {
+    public Updater(VanguardClan plugin, int resourceId) {
         this.plugin = plugin;
         this.resourceId = resourceId;
     }

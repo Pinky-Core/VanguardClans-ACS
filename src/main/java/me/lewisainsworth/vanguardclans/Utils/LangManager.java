@@ -1,6 +1,6 @@
-package me.lewisainsworth.satipoclans.Utils;
+package me.lewisainsworth.vanguardclans.Utils;
 
-import me.lewisainsworth.satipoclans.SatipoClan;
+import me.lewisainsworth.vanguardclans.VanguardClan;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
@@ -8,11 +8,11 @@ import java.util.*;
 
 public class LangManager {
 
-    private final SatipoClan plugin;
+    private final VanguardClan plugin;
     private final Map<String, YamlConfiguration> loadedLangs = new HashMap<>();
     private String currentLang;
 
-    public LangManager(SatipoClan plugin) {
+    public LangManager(VanguardClan plugin) {
         this.plugin = plugin;
         this.currentLang = plugin.getConfig().getString("lang", "es").toLowerCase(Locale.ROOT);
         loadLangs();
@@ -66,7 +66,7 @@ public class LangManager {
     }
 
     public String getMessageWithPrefix(String path) {
-        String prefix = plugin.getConfig().getString("prefix", "&7[SatipoClans]");
+        String prefix = plugin.getConfig().getString("prefix", "&7[VanguardClans]");
         return prefix + " " + getMessage(path);
     }
 

@@ -72,6 +72,7 @@ user:
   # INVITE COMMAND
   only_players_invite: "&c Solo los jugadores pueden enviar invitaciones."
   no_clan: "&c No perteneces a ningún clan."
+  invite_only_leader: "&c ¡Solo el líder puede invitar jugadores al clan!"
   cant_invite_self: "&c ¡No puedes invitarte a ti mismo!"
   player_not_online: "&c El jugador no está en línea."
   player_in_other_clan: "&c Ese jugador ya pertenece a otro clan."
@@ -234,6 +235,13 @@ msg:
   admin_fix_usage_1: "&eUsa &b/clanadmin fix confirm &epara confirmar la reparación de nombres de clanes."
   admin_fix_usage_2: "&7Esto eliminará colores de &fname_colored &7en todos los clanes para evitar bugs de invitación y detección de clan."
   admin_fix_start: "&eIniciando reparación asincrónica de colores de clanes..."
+  
+  # REPAIR COMMAND
+  admin_repair_usage_1: "&eUsa &b/clanadmin repair confirm &epara reparar problemas de liderazgo e invitaciones de clanes."
+  admin_repair_usage_2: "&7Esto arreglará problemas con líderes de clanes que no son reconocidos después de cambios de nombre."
+  admin_repair_start: "&eIniciando reparación de problemas de liderazgo de clanes..."
+  admin_repair_success: "&a¡Reparación completada! Se arreglaron &f{count} &aproblemas de liderazgo de clanes."
+  admin_repair_error: "&cOcurrió un error al reparar el liderazgo de clanes. Revisa la consola."
 
 
   # HELP COMMAND

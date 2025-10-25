@@ -1,4 +1,4 @@
-package me.lewisainsworth.satipoclans.Utils;
+package me.lewisainsworth.vanguardclans.Utils;
 
 import net.md_5.bungee.api.ChatColor;
 

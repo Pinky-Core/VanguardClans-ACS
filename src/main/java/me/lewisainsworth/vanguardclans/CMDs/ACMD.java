@@ -1,4 +1,4 @@
-package me.lewisainsworth.satipoclans.CMDs;
+package me.lewisainsworth.vanguardclans.CMDs;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -9,12 +9,12 @@ import org.jetbrains.annotations.NotNull;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
-import me.lewisainsworth.satipoclans.SatipoClan;
-import me.lewisainsworth.satipoclans.Utils.Econo;
-import me.lewisainsworth.satipoclans.Utils.FileHandler;
-import me.lewisainsworth.satipoclans.Utils.MSG;
-import me.lewisainsworth.satipoclans.Utils.LangManager;
-import static me.lewisainsworth.satipoclans.SatipoClan.prefix;
+import me.lewisainsworth.vanguardclans.VanguardClan;
+import me.lewisainsworth.vanguardclans.Utils.Econo;
+import me.lewisainsworth.vanguardclans.Utils.FileHandler;
+import me.lewisainsworth.vanguardclans.Utils.MSG;
+import me.lewisainsworth.vanguardclans.Utils.LangManager;
+import static me.lewisainsworth.vanguardclans.VanguardClan.prefix;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,14 +46,14 @@ import net.md_5.bungee.api.chat.hover.content.Text;
 
 public class ACMD implements CommandExecutor, TabCompleter {
 
-    private final SatipoClan plugin;
+    private final VanguardClan plugin;
 
     private String lastMessageId = null;
 
     private final LangCMD langCMD;
     private final LangManager langManager;
 
-    public ACMD(SatipoClan plugin) {
+    public ACMD(VanguardClan plugin) {
         this.plugin = plugin;
         this.langManager = plugin.getLangManager();
         this.langCMD = new LangCMD(plugin);
@@ -64,7 +64,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String s, String[] args) {
         if (!(sender instanceof Player)) return handleConsole(sender, args);
 
-        if (!sender.hasPermission("satipoclans.admin")) {
+        if (!sender.hasPermission("vanguardclans.admin")) {
             sender.sendMessage(MSG.color(langManager.getMessage("msg.no_permission")));
             return true;
         }
@@ -89,17 +89,32 @@ public class ACMD implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 sender.sendMessage(MSG.color(langManager.getMessage("msg.admin_fix_start")));
-                plugin.getMariaDBManager().fixClanColorsAsync(sender);
+                plugin.getStorageProvider().fixClanColorsAsync(sender);
+            }
+            case "repair" -> {
+                if (args.length < 2 || !args[1].equalsIgnoreCase("confirm")) {
+                    sender.sendMessage(MSG.color(langManager.getMessage("msg.admin_repair_usage_1")));
+                    sender.sendMessage(MSG.color(langManager.getMessage("msg.admin_repair_usage_2")));
+                    return true;
+                }
+                sender.sendMessage(MSG.color(langManager.getMessage("msg.admin_repair_start")));
+                plugin.getStorageProvider().repairClanLeadership(sender);
             }
             case "sqlstatus" -> {
                 try {
-                    var ds = plugin.getMariaDBManager().getDataSource();
+                    var ds = plugin.getStorageProvider().getDataSource();
                     if (ds == null) {
                         sender.sendMessage(MSG.color("&cDataSource is null."));
                         return true;
                     }
 
-                    var pool = ds.getHikariPoolMXBean();
+                    // Check if it's a HikariDataSource
+                    if (!(ds instanceof com.zaxxer.hikari.HikariDataSource hikariDs)) {
+                        sender.sendMessage(MSG.color("&cCurrent storage provider does not support HikariCP pool statistics."));
+                        return true;
+                    }
+
+                    var pool = hikariDs.getHikariPoolMXBean();
                     if (pool == null) {
                         sender.sendMessage(MSG.color("&cHikariPoolMXBean is null."));
                         return true;
@@ -128,7 +143,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
                     return true;
                 }
 
-                if (!sender.hasPermission("satipoclans.admin")) {
+                if (!sender.hasPermission("vanguardclans.admin")) {
                     sender.sendMessage(MSG.color(langManager.getMessage("msg.no_permission")));
                     return true;
                 }
@@ -147,7 +162,9 @@ public class ACMD implements CommandExecutor, TabCompleter {
                     sender.sendMessage(MSG.color(langManager.getMessage("msg.clan_forcejoin_usage")));
                     return true;
                 }
-                plugin.getMariaDBManager().forceJoin(args[1], args[2]);
+                // Note: forceJoin is not in the interface, we'll need to implement this
+                // For now, we'll add the player to the clan
+                plugin.getStorageProvider().addPlayerToClan(args[2], args[1]);
                 sender.sendMessage(MSG.color(langManager.getMessage("msg.clan_forced_joined")));
             }
 
@@ -156,7 +173,12 @@ public class ACMD implements CommandExecutor, TabCompleter {
                     sender.sendMessage(MSG.color(langManager.getMessage("msg.clan_forceleave_usage")));
                     return true;
                 }
-                plugin.getMariaDBManager().forceLeave(args[1]);
+                // Note: forceLeave is not in the interface, we'll need to implement this
+                // For now, we'll remove the player from their clan
+                String playerClan = plugin.getStorageProvider().getPlayerClan(args[1]);
+                if (playerClan != null) {
+                    plugin.getStorageProvider().removePlayerFromClan(args[1], playerClan);
+                }
                 sender.sendMessage(MSG.color(langManager.getMessage("msg.clan_forced_left")));
             }
 
@@ -165,7 +187,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
                     sender.sendMessage(MSG.color(langManager.getMessage("msg.clan_force_delete")));
                     return true;
                 }
-                plugin.getMariaDBManager().deleteClan(args[1]);
+                plugin.getStorageProvider().deleteClan(args[1]);
                 sender.sendMessage(MSG.color(langManager.getMessage("msg.clan_deleted")));
             }
             default -> help(sender);
@@ -182,7 +204,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
         String json = """
         {
         "embeds": [{
-            "title": "SatipoClans - SQL Status",
+            "title": "VanguardClans - SQL Status",
             "color": 3066993,
             "fields": [
             { "name": "Active Connections", "value": "%d", "inline": true },
@@ -231,6 +253,72 @@ public class ACMD implements CommandExecutor, TabCompleter {
             } catch (Exception e) {
                 plugin.getLogger().severe("No se pudo enviar estado SQL al webhook de Discord:");
                 e.printStackTrace();
+            }
+        });
+    }
+
+    private void repairClanLeadership(CommandSender sender) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            final int[] fixed = {0};
+            try (Connection con = plugin.getStorageProvider().getConnection()) {
+                con.setAutoCommit(false);
+                
+                try {
+                    // Reparar inconsistencias en el cache y verificar líderes
+                    try (PreparedStatement ps = con.prepareStatement("SELECT name, leader FROM clans")) {
+                        ResultSet rs = ps.executeQuery();
+                        while (rs.next()) {
+                            String clanName = rs.getString("name");
+                            String leader = rs.getString("leader");
+                            
+                            // Verificar si el líder existe en clan_users
+                            try (PreparedStatement checkLeader = con.prepareStatement("SELECT 1 FROM clan_users WHERE clan=? AND username=?")) {
+                                checkLeader.setString(1, clanName);
+                                checkLeader.setString(2, leader);
+                                ResultSet leaderRs = checkLeader.executeQuery();
+                                
+                                if (!leaderRs.next()) {
+                                    // El líder no está en clan_users, buscar un nuevo líder
+                                    try (PreparedStatement findNewLeader = con.prepareStatement("SELECT username FROM clan_users WHERE clan=? LIMIT 1")) {
+                                        findNewLeader.setString(1, clanName);
+                                        ResultSet newLeaderRs = findNewLeader.executeQuery();
+                                        
+                                        if (newLeaderRs.next()) {
+                                            String newLeader = newLeaderRs.getString("username");
+                                            try (PreparedStatement updateLeader = con.prepareStatement("UPDATE clans SET leader=? WHERE name=?")) {
+                                                updateLeader.setString(1, newLeader);
+                                                updateLeader.setString(2, clanName);
+                                                updateLeader.executeUpdate();
+                                                fixed[0]++;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Recargar el cache
+                    plugin.getStorageProvider().reloadCache();
+                    
+                    con.commit();
+                    
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        sender.sendMessage(MSG.color(langManager.getMessage("msg.admin_repair_success").replace("{count}", String.valueOf(fixed[0]))));
+                    });
+                    
+                } catch (SQLException e) {
+                    con.rollback();
+                    throw e;
+                } finally {
+                    con.setAutoCommit(true);
+                }
+                
+            } catch (SQLException e) {
+                e.printStackTrace();
+                Bukkit.getScheduler().runTask(plugin, () ->
+                    sender.sendMessage(MSG.color(langManager.getMessage("msg.admin_repair_error")))
+                );
             }
         });
     }
@@ -316,7 +404,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
 
         confirmClear.remove(sender);
 
-        try (Connection con = plugin.getMariaDBManager().getConnection();
+        try (Connection con = plugin.getStorageProvider().getConnection();
             Statement stmt = con.createStatement()) {
 
             stmt.executeUpdate("SET FOREIGN_KEY_CHECKS = 0");
@@ -347,16 +435,20 @@ public class ACMD implements CommandExecutor, TabCompleter {
 
 
     private void reports(CommandSender sender) {
-        try (Connection con = plugin.getMariaDBManager().getConnection();
-            PreparedStatement stmt = con.prepareStatement("SELECT clan, reason FROM reports");
-            ResultSet rs = stmt.executeQuery()) {
-
+        try {
+            var sp = plugin.getStorageProvider();
             Map<String, List<String>> reported = new HashMap<>();
 
-            while (rs.next()) {
-                String clan = rs.getString("clan");
-                String reason = rs.getString("reason");
-                reported.computeIfAbsent(clan, k -> new ArrayList<>()).add(reason);
+            for (String clan : sp.getAllClans()) {
+                List<Map<String, Object>> reports = sp.getClanReports(clan);
+                if (reports != null && !reports.isEmpty()) {
+                    for (Map<String, Object> r : reports) {
+                        Object reasonObj = r.get("reason");
+                        if (reasonObj != null) {
+                            reported.computeIfAbsent(clan, k -> new ArrayList<>()).add(String.valueOf(reasonObj));
+                        }
+                    }
+                }
             }
 
             if (reported.isEmpty()) {
@@ -366,12 +458,10 @@ public class ACMD implements CommandExecutor, TabCompleter {
 
             sender.sendMessage(MSG.color(langManager.getMessage("msg.reports_title")));
             reported.forEach((clan, reasons) -> {
-                // Reemplazo de placeholder {clan}
                 sender.sendMessage(MSG.color(langManager.getMessage("msg.clan_colon").replace("{clan}", clan)));
                 reasons.forEach(reason -> sender.sendMessage(MSG.color(langManager.getMessage("msg.report_reason").replace("{reason}", reason))));
             });
-
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("msg.error_loading_reports")));
         }
@@ -387,7 +477,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
         String clan = args[1];
         String reason = args.length >= 3 ? args[2] : "Baneado por un administrador";
 
-        try (Connection con = plugin.getMariaDBManager().getConnection();
+        try (Connection con = plugin.getStorageProvider().getConnection();
             PreparedStatement check = con.prepareStatement("SELECT name FROM clans WHERE name = ?");
             PreparedStatement ban = con.prepareStatement("REPLACE INTO banned_clans (name, reason) VALUES (?, ?)");
             PreparedStatement members = con.prepareStatement("SELECT username FROM clan_users WHERE clan = ?");
@@ -511,7 +601,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
                 WHERE name = ?
             """;
 
-            try (Connection con = plugin.getMariaDBManager().getConnection();
+            try (Connection con = plugin.getStorageProvider().getConnection();
                 PreparedStatement stmt = con.prepareStatement(sql)) {
 
                 stmt.setString(1, action);
@@ -577,7 +667,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
 
         String clan = args[1];
 
-        try (Connection con = plugin.getMariaDBManager().getConnection();
+        try (Connection con = plugin.getStorageProvider().getConnection();
             PreparedStatement check = con.prepareStatement("SELECT name FROM banned_clans WHERE name = ?");
             PreparedStatement unban = con.prepareStatement("DELETE FROM banned_clans WHERE name = ?")) {
 
@@ -603,12 +693,12 @@ public class ACMD implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String s, String[] args) {
-        if (!(sender instanceof Player p) || !p.hasPermission("satipoclans.admin")) {
+        if (!(sender instanceof Player p) || !p.hasPermission("vanguardclans.admin")) {
             return args.length == 1 ? List.of("reload") : Collections.emptyList();
         }
 
         if (args.length == 1) {
-            return Stream.of("reload", "ban", "unban", "clear", "reports", "lang", "forcejoin", "forceleave", "delete", "sqlstatus")
+            return Stream.of("reload", "ban", "unban", "clear", "reports", "lang", "forcejoin", "forceleave", "delete", "sqlstatus", "fix", "repair")
                     .filter(sub -> sub.startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());
         }

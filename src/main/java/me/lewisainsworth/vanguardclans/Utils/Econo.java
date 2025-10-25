@@ -1,4 +1,4 @@
-package me.lewisainsworth.satipoclans.Utils;
+package me.lewisainsworth.vanguardclans.Utils;
 
 import net.milkbowl.vault.economy.Economy;
 
@@ -8,7 +8,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
-import me.lewisainsworth.satipoclans.SatipoClan;
+import me.lewisainsworth.vanguardclans.VanguardClan;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,11 +17,11 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.bukkit.Bukkit.getServer;
-import static me.lewisainsworth.satipoclans.SatipoClan.prefix;
+import static me.lewisainsworth.vanguardclans.VanguardClan.prefix;
 
 public class Econo {
 
-    private final SatipoClan plugin;
+    private final VanguardClan plugin;
     private String system;
 
     public static Economy vault;
@@ -29,7 +29,7 @@ public class Econo {
     private File balanceFile;
     private FileConfiguration balanceCfg;
 
-    public Econo(SatipoClan plugin) {
+    public Econo(VanguardClan plugin) {
         this.plugin = plugin;
     }
 

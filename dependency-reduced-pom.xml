@@ -2,8 +2,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>me.lewisainsworth</groupId>
-  <artifactId>satipoclans</artifactId>
-  <version>1.4.4</version>
+  <artifactId>vanguardclans</artifactId>
+  <version>1.4.5</version>
   <build>
     <resources>
       <resource>
@@ -49,6 +49,18 @@
                   <shadedPattern>me.lewisainsworth.shaded.mariadb</shadedPattern>
                 </relocation>
                 <relocation>
+                  <pattern>com.mysql</pattern>
+                  <shadedPattern>me.lewisainsworth.shaded.mysql</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.h2</pattern>
+                  <shadedPattern>me.lewisainsworth.shaded.h2</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.sqlite</pattern>
+                  <shadedPattern>me.lewisainsworth.shaded.sqlite</shadedPattern>
+                </relocation>
+                <relocation>
                   <pattern>com.zaxxer.hikari</pattern>
                   <shadedPattern>me.lewisainsworth.shaded.hikari</shadedPattern>
                 </relocation>
@@ -57,6 +69,24 @@
               <filters>
                 <filter>
                   <artifact>org.mariadb.jdbc:mariadb-java-client</artifact>
+                  <includes>
+                    <include>**/*</include>
+                  </includes>
+                </filter>
+                <filter>
+                  <artifact>mysql:mysql-connector-java</artifact>
+                  <includes>
+                    <include>**/*</include>
+                  </includes>
+                </filter>
+                <filter>
+                  <artifact>com.h2database:h2</artifact>
+                  <includes>
+                    <include>**/*</include>
+                  </includes>
+                </filter>
+                <filter>
+                  <artifact>org.xerial:sqlite-jdbc</artifact>
                   <includes>
                     <include>**/*</include>
                   </includes>
@@ -106,6 +136,12 @@
       <artifactId>VaultAPI</artifactId>
       <version>1.7.1</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+      <version>8.0.33</version>
+      <scope>compile</scope>
     </dependency>
   </dependencies>
   <properties>

@@ -1,8 +1,8 @@
-package me.lewisainsworth.satipoclans.CMDs;
+package me.lewisainsworth.vanguardclans.CMDs;
 
-import me.lewisainsworth.satipoclans.SatipoClan;
-import me.lewisainsworth.satipoclans.Utils.LangManager;
-import me.lewisainsworth.satipoclans.Utils.MSG;
+import me.lewisainsworth.vanguardclans.VanguardClan;
+import me.lewisainsworth.vanguardclans.Utils.LangManager;
+import me.lewisainsworth.vanguardclans.Utils.MSG;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -13,7 +13,7 @@ import java.util.Map;
 
 public class LangCMD implements CommandExecutor {
 
-    private final SatipoClan plugin;
+    private final VanguardClan plugin;
     private final LangManager langManager;
 
     // Mapa para mostrar nombre legible de idiomas
@@ -23,7 +23,7 @@ public class LangCMD implements CommandExecutor {
             // Podés agregar más idiomas aquí
     );
 
-    public LangCMD(SatipoClan plugin) {
+    public LangCMD(VanguardClan plugin) {
         this.plugin = plugin;
         this.langManager = plugin.getLangManager();
     }
@@ -36,7 +36,7 @@ public class LangCMD implements CommandExecutor {
         }
         Player p = (Player) sender;
 
-        if (!p.hasPermission("satipoclans.admin")) {
+        if (!p.hasPermission("vanguardclans.admin")) {
             p.sendMessage(MSG.color(langManager.getMessage("lang.no_permission")));
             return true;
         }

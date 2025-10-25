@@ -2,33 +2,59 @@
 #                                                                    #
 #                     Placeholders disponibles:                      #
 #  ---------------------------------------------------------------   #
-#  | %satipoclans_prefix%               : Prefijo del plugin      |  #
-#  | %satipoclans_clan_leader%          : Nombre del líder        |  #
-#  | %satipoclans_clan_founder%         : Nombre del fundador     |  #
-#  | %satipoclans_clan_name%            : Nombre del clan         |  #
-#  | %satipoclans_clan_tag%             : Tag del clan            |  #
-#  | %satipoclans_clan_money%           : Bóveda del clan         |  #
-#  | %satipoclans_clan_membercount_offline% : Miembros offline    |  #
-#  | %satipoclans_clan_membercount_online%  : Miembros en línea   |  #
-#  | %satipoclans_clan_membercount%     : Total de miembros       |  #
-#  | %satipoclans_player_money%         : Bóveda del jugador      |  #
+#  | %vanguardclans_prefix%               : Prefijo del plugin      |  #
+#  | %vanguardclans_clan_leader%          : Nombre del líder        |  #
+#  | %vanguardclans_clan_founder%         : Nombre del fundador     |  #
+#  | %vanguardclans_clan_name%            : Nombre del clan         |  #
+#  | %vanguardclans_clan_tag%             : Tag del clan            |  #
+#  | %vanguardclans_clan_money%           : Bóveda del clan         |  #
+#  | %vanguardclans_clan_membercount_offline% : Miembros offline    |  #
+#  | %vanguardclans_clan_membercount_online%  : Miembros en línea   |  #
+#  | %vanguardclans_clan_membercount%     : Total de miembros       |  #
+#  | %vanguardclans_player_money%         : Bóveda del jugador      |  #
 #  ---------------------------------------------------------------   #
 #       Ahora puedes usar los placeholders de PlaceholderAPI.        #
 #                                                                    #
 ######################################################################
 
 
-prefix: "&7[&a&lꜱᴀᴛɪᴘᴏ&6&lᴄʟᴀɴꜱ&7]"
+prefix: "&7[&a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ&7]"
 
 storage:
-  type: "mariadb" # NO TOCAR! A MENOS QUE SEPAS LO QUE HACES!
+  # Storage type: mariadb, mysql, h2, sqlite, yaml
+  # YAML is recommended for small servers or when you don't have a database
+  type: "yaml"
 
+  # MariaDB configuration
   mariadb:
     host: "localhost"
     port: 3306
-    database: "satipoclans"
+    database: "vanguardclans"
     username: "root"
     password: "password"
+
+  # MySQL configuration
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "vanguardclans"
+    username: "root"
+    password: "password"
+
+  # H2 configuration (file-based, no additional setup needed)
+  h2:
+    # H2 database file will be created in the plugin folder
+    # No additional configuration needed
+
+  # SQLite configuration (file-based, no additional setup needed)
+  sqlite:
+    # SQLite database file will be created in the plugin folder
+    # No additional configuration needed
+
+  # YAML configuration (file-based, no additional setup needed)
+  yaml:
+    # YAML data file will be created in the plugin folder
+    # No additional configuration needed
 
 welcome-message:
   enabled: true
@@ -41,8 +67,8 @@ welcome-message:
 
   self-clan:
     - ""
-    - "Estás en el clan %satipoclans_clan_name%"
-    - "Miembros en línea: %satipoclans_clan_membercount_online% / %satipoclans_clan_membercount%"
+    - "Estás en el clan %vanguardclans_clan_name%"
+    - "Miembros en línea: %vanguardclans_clan_membercount_online% / %vanguardclans_clan_membercount%"
     - ""
 
   to-clan:
@@ -66,7 +92,7 @@ max-clans: 0 # 0 = ILIMITADO
 
 economy:
   enabled: true
-  system: "Vault" # Vault / Internal (SatipoClans sistema de economía)
+  system: "Vault" # Vault / Internal (VanguardClans sistema de economía)
 
   cost:
     create-clan: 1000

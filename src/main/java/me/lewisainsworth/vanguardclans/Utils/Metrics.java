@@ -12,7 +12,7 @@
  *
  * Violations will result in a ban of your plugin and account from bStats.
  */
-package me.lewisainsworth.satipoclans.Utils;
+package me.lewisainsworth.vanguardclans.Utils;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;

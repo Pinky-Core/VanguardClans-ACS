@@ -1,4 +1,4 @@
-package me.lewisainsworth.satipoclans;
+package me.lewisainsworth.vanguardclans;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -10,14 +10,16 @@ import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import me.lewisainsworth.satipoclans.CMDs.CCMD;
-import me.lewisainsworth.satipoclans.CMDs.ACMD;
-import me.lewisainsworth.satipoclans.CMDs.PECMD;
-import me.lewisainsworth.satipoclans.CMDs.LangCMD;
-import me.lewisainsworth.satipoclans.Events.Events;
-import me.lewisainsworth.satipoclans.Utils.*;
-import me.lewisainsworth.satipoclans.Database.MariaDBManager;
-import me.lewisainsworth.satipoclans.listeners.PlayerStatsListener;
+import me.lewisainsworth.vanguardclans.CMDs.CCMD;
+import me.lewisainsworth.vanguardclans.CMDs.ACMD;
+import me.lewisainsworth.vanguardclans.CMDs.PECMD;
+import me.lewisainsworth.vanguardclans.CMDs.LangCMD;
+import me.lewisainsworth.vanguardclans.Events.Events;
+import me.lewisainsworth.vanguardclans.Utils.*;
+import me.lewisainsworth.vanguardclans.Database.MariaDBManager;
+import me.lewisainsworth.vanguardclans.Database.StorageProvider;
+import me.lewisainsworth.vanguardclans.Database.StorageFactory;
+import me.lewisainsworth.vanguardclans.listeners.PlayerStatsListener;
 
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -37,7 +39,7 @@ import java.util.UUID;
 
 
 
-public class SatipoClan extends JavaPlugin {
+public class VanguardClan extends JavaPlugin {
    public String version = getDescription().getVersion();
    public static String prefix;
    public static Econo econ;
@@ -45,12 +47,12 @@ public class SatipoClan extends JavaPlugin {
    private Updater updater;
    private Metrics metrics;
    private FileHandler fh;
-   private MariaDBManager mariaDBManager;
+   private StorageProvider storageProvider;
    public LangManager langManager;
    private LangCMD langCMD;
    private CCMD ccCmd;
 
-   private static SatipoClan instance;
+   private static VanguardClan instance;
 
    public Set<UUID> teleportingPlayers = new HashSet<>();
    public Map<UUID, Long> homeCooldowns = new HashMap<>();
@@ -65,7 +67,7 @@ public class SatipoClan extends JavaPlugin {
       saveDefaultConfig();
       this.clanHomeCooldown = getConfig().getInt("clan_home.cooldown", 30);
       this.clanHomeDelay = getConfig().getInt("clan_home.teleport_delay", 5);
-      prefix = getConfig().getString("prefix", "&7 [&a&lꜱᴀᴛɪᴘᴏ&6&lᴄʟᴀɴꜱ&7]&n");
+      prefix = getConfig().getString("prefix", "&7 [&a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ&7]&n");
       fh = new FileHandler(this);
       updater = new Updater(this, 114316);
       metrics = new Metrics(this, 20912);
@@ -93,16 +95,20 @@ public class SatipoClan extends JavaPlugin {
       fh.saveDefaults();
 
       try {
-         mariaDBManager = new MariaDBManager(getConfig());
-         mariaDBManager.setupTables();
-         mariaDBManager.syncFromYaml(fh.getData());
-         mariaDBManager.clearYamlClans(fh.getData(), fh);
-         getLogger().info("Clans data successfully synced to MariaDB.");
+         String storageType = getConfig().getString("storage.type", "yaml");
+         storageProvider = StorageFactory.createStorageProvider(storageType, getConfig());
+         getLogger().info("Storage provider initialized: " + storageType);
       } catch (Exception e) {
-         getLogger().severe("Failed to connect to MariaDB or sync data: " + e.getMessage());
-         e.printStackTrace();
-         getServer().getPluginManager().disablePlugin(this);
-         return;
+         getLogger().severe("Failed to initialize storage provider: " + e.getMessage());
+         getLogger().severe("Falling back to YAML storage...");
+         try {
+            storageProvider = StorageFactory.createStorageProvider("yaml", getConfig());
+            getLogger().info("YAML storage provider initialized as fallback.");
+         } catch (Exception fallbackError) {
+            getLogger().severe("Failed to initialize fallback storage: " + fallbackError.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+         }
       }
 
       setupMetrics();
@@ -112,7 +118,7 @@ public class SatipoClan extends JavaPlugin {
 
       if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
          new PAPI(this).registerPlaceholders();
-         getLogger().info("Placeholders de SatipoClans registrados correctamente.");
+         getLogger().info("Placeholders de VanguardClans registrados correctamente.");
       }
 
       Bukkit.getConsoleSender().sendMessage(MSG.color("&av" + getDescription().getVersion() + " &2Enabled!"));
@@ -121,13 +127,13 @@ public class SatipoClan extends JavaPlugin {
 
    @Override
    public void onDisable() {
-      if (mariaDBManager != null) {
-         mariaDBManager.close();
+      if (storageProvider != null) {
+         storageProvider.close();
       }
       Bukkit.getConsoleSender().sendMessage(MSG.color("&av" + getDescription().getVersion() + " &cDisabled"));
    }
 
-   public static SatipoClan getInstance() {
+   public static VanguardClan getInstance() {
       return instance;
    }
 
@@ -171,7 +177,7 @@ public class SatipoClan extends JavaPlugin {
    }
 
    public void searchUpdates() {
-      String downloadUrl = "https://www.spigotmc.org/resources/satipoclans.126207/";
+      String downloadUrl = "https://www.spigotmc.org/resources/VanguardClans.126207/";
       TextComponent link = new TextComponent(MSG.color("&6&lClick here to download the update!"));
       link.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, downloadUrl));
 
@@ -190,7 +196,7 @@ public class SatipoClan extends JavaPlugin {
           Bukkit.getConsoleSender().sendMessage(MSG.color("&2&l============================================================"));
           Bukkit.getConsoleSender().sendMessage(MSG.color("&6&l         ＮＥＷ  ＶＥＲＳＩＯＮ  ＡＶＡＩＬＡＢＬＥ!"));
           Bukkit.getConsoleSender().sendMessage(MSG.color("&7"));
-          Bukkit.getConsoleSender().sendMessage(MSG.color("&e&lPlugin: &fSatipoClans"));
+          Bukkit.getConsoleSender().sendMessage(MSG.color("&e&lPlugin: &fVanguardClans"));
           Bukkit.getConsoleSender().sendMessage(MSG.color("&e&lCurrent Version: &f" + version));
           Bukkit.getConsoleSender().sendMessage(MSG.color("&e&lLatest Version: &f" + latestVersion));
           Bukkit.getConsoleSender().sendMessage(MSG.color("&e&lDownload: &b" + downloadUrl));
@@ -203,7 +209,7 @@ public class SatipoClan extends JavaPlugin {
           Bukkit.getConsoleSender().sendMessage(MSG.color("&2&l============================================================"));
 
          for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.hasPermission("satipoclans.admin")) {
+            if (player.hasPermission("VanguardClans.admin")) {
                   player.sendMessage(MSG.color(prefix + "&e A new plugin update is available!"));
                player.spigot().sendMessage(link);
             }
@@ -212,15 +218,7 @@ public class SatipoClan extends JavaPlugin {
    }
 
    public boolean isClanBanned(String clanName) {
-      try (Connection con = getMariaDBManager().getConnection();
-            PreparedStatement ps = con.prepareStatement("SELECT name FROM banned_clans WHERE name = ?")) {
-         ps.setString(1, clanName);
-         ResultSet rs = ps.executeQuery();
-         return rs.next();
-      } catch (SQLException e) {
-         e.printStackTrace();
-         return false; // Por seguridad, podrías devolver true si quieres evitar riesgos
-      }
+      return getStorageProvider().isClanBanned(clanName);
    }
 
    public boolean isClanChatToggled(Player player) {
@@ -237,20 +235,11 @@ public class SatipoClan extends JavaPlugin {
 
 
    public String getPlayerClan(String playerName) {
-      String clan = null;
-      String sql = "SELECT clan FROM clan_users WHERE username = ? LIMIT 1";
-      try (Connection con = this.getMariaDBManager().getConnection();
-            PreparedStatement ps = con.prepareStatement(sql)) {
-         ps.setString(1, playerName);
-         try (ResultSet rs = ps.executeQuery()) {
-               if (rs.next()) {
-                  clan = rs.getString("clan");
-               }
-         }
-      } catch (SQLException e) {
-         e.printStackTrace();
+      if (playerName == null || playerName.isEmpty()) {
+         return null;
       }
-      return clan;
+      
+      return this.getStorageProvider().getPlayerClan(playerName);
    }
 
 
@@ -267,8 +256,16 @@ public class SatipoClan extends JavaPlugin {
       return fh;
    }
 
+   public StorageProvider getStorageProvider() {
+      return storageProvider;
+   }
+
+   // Legacy method for backward compatibility
    public MariaDBManager getMariaDBManager() {
-      return mariaDBManager;
+      if (storageProvider instanceof MariaDBManager) {
+         return (MariaDBManager) storageProvider;
+      }
+      throw new UnsupportedOperationException("Current storage provider is not MariaDB");
    }
 
    public LangManager getLangManager() {

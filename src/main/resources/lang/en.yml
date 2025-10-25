@@ -18,7 +18,7 @@ user:
   # HELP COMMAND
   invalid_page_help: "&c Invalid page. Use /clan help <1-{total_pages}>"
   help_header: "&6&m====================================="
-  help_title: "&6&l» &a&lꜱᴀᴛɪᴘᴏ&6&lᴄʟᴀɴꜱ &e&lᴄᴏᴍᴍᴀɴᴅꜱ &7(Page {page}/{total_pages})"
+  help_title: "&6&l» &a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ &e&lᴄᴏᴍᴍᴀɴᴅꜱ &7(Page {page}/{total_pages})"
   help_footer: "&6&m====================================="
   help_lines:
     - "&e➤ &f&lCREATE &7» &fCreate a new clan and start your adventure."
@@ -65,7 +65,7 @@ user:
   stats_money: "&7Clan money: &a${money}"
   stats_members_title: "&2Members:"
   stats_member_line: "&f- &l{member}"
-  stats_footer: "&2================== &7 [&a&lꜱᴀᴛɪᴘᴏ&6&lᴄʟᴀɴꜱ&7] &2=================="
+  stats_footer: "&2================== &7 [&a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ&7] &2=================="
   stats_error: "&c Error loading clan statistics."
   stats_avg_kd: "&eAverage clan K/D: &b{avgKD}"
   stats_member_line: "&7- &f{member} &8| &eK/D: &b{kd}"
@@ -73,6 +73,7 @@ user:
   # INVITE COMMAND
   only_players_invite: "&c Only players can send invitations."
   no_clan: "&c You are not in any clan."
+  invite_only_leader: "&c Only the leader can invite players to the clan!"
   cant_invite_self: "&c You cannot invite yourself!"
   player_not_online: "&c The player is not online."
   player_in_other_clan: "&c That player is already in another clan."
@@ -234,13 +235,20 @@ msg:
   admin_fix_usage_1: "&eUse &b/clanadmin fix confirm &eto confirm the repair of clan names."
   admin_fix_usage_2: "&7This will remove colors from &fname_colored &7in all clans to avoid invitation and clan detection bugs."
   admin_fix_start: "&eStarting asynchronous repair of clan colors..."
+  
+  # REPAIR COMMAND
+  admin_repair_usage_1: "&eUse &b/clanadmin repair confirm &eto repair clan leadership and invitation issues."
+  admin_repair_usage_2: "&7This will fix problems with clan leaders not being recognized after name changes."
+  admin_repair_start: "&eStarting repair of clan leadership issues..."
+  admin_repair_success: "&aRepair completed! Fixed &f{count} &aclan leadership issues."
+  admin_repair_error: "&cError occurred while repairing clan leadership. Check console."
 
 
   # HELP COMMAND
   help:
     commands:
       - "&8&m====================================="
-      - "&8&l» &a&lꜱᴀᴛɪᴘᴏ&6&lᴄʟᴀɴꜱ &c&lᴀᴅᴍɪɴ &8&l«"
+      - "&8&l» &a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ &c&lᴀᴅᴍɪɴ &8&l«"
       - "&8&m====================================="
       - "&e/clanadmin reports &7» &fShows all clans with active reports."
       - "&e/clanadmin reload &7» &fReloads the plugin's configuration and data."

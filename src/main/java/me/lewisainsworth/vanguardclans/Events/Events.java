@@ -1,4 +1,4 @@
-package me.lewisainsworth.satipoclans.Events;
+package me.lewisainsworth.vanguardclans.Events;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.event.Listener;
@@ -15,24 +15,24 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 
 
 
-import me.lewisainsworth.satipoclans.SatipoClan;
-import me.lewisainsworth.satipoclans.Utils.Econo;
-import me.lewisainsworth.satipoclans.Utils.FileHandler;
-import me.lewisainsworth.satipoclans.Utils.MSG;
-import me.lewisainsworth.satipoclans.Utils.ClanUtils;
-import me.lewisainsworth.satipoclans.Utils.ClanUtils;
-import me.lewisainsworth.satipoclans.CMDs.CCMD;
+import me.lewisainsworth.vanguardclans.VanguardClan;
+import me.lewisainsworth.vanguardclans.Utils.Econo;
+import me.lewisainsworth.vanguardclans.Utils.FileHandler;
+import me.lewisainsworth.vanguardclans.Utils.MSG;
+import me.lewisainsworth.vanguardclans.Utils.ClanUtils;
+import me.lewisainsworth.vanguardclans.Utils.ClanUtils;
+import me.lewisainsworth.vanguardclans.CMDs.CCMD;
 
-import static me.lewisainsworth.satipoclans.SatipoClan.prefix;
+import static me.lewisainsworth.vanguardclans.VanguardClan.prefix;
 
 import java.sql.*;
 import java.util.*;
 
 public class Events implements Listener {
-    private final SatipoClan plugin;
+    private final VanguardClan plugin;
     private final CCMD ccCmd;
 
-    public Events(SatipoClan plugin, CCMD ccCmd) {
+    public Events(VanguardClan plugin, CCMD ccCmd) {
         this.plugin = plugin;
         this.ccCmd = ccCmd;
     }
@@ -89,7 +89,7 @@ public class Events implements Listener {
 
         if (killer != null) {
             int killReward = fh.getConfig().getInt("economy.earn.kill-enemy");
-            SatipoClan.econ.deposit(killer, killReward);
+            VanguardClan.econ.deposit(killer, killReward);
             killer.sendMessage(MSG.color(prefix + "&2 Ganaste: &e&l" + killReward));
         }
     }
@@ -136,71 +136,19 @@ public class Events implements Listener {
 
 
     private boolean areClansAllied(String clan1, String clan2) {
-        String sql = "SELECT 1 FROM alliances WHERE (clan1 = ? AND clan2 = ?) OR (clan1 = ? AND clan2 = ?)";
-        try (Connection con = plugin.getMariaDBManager().getConnection();
-            PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, clan1);
-            ps.setString(2, clan2);
-            ps.setString(3, clan2);
-            ps.setString(4, clan1);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
+        return plugin.getStorageProvider().areClansAllied(clan1, clan2);
     }
 
     private List<String> getClanUsers(String clan) {
-        List<String> users = new ArrayList<>();
-        String sql = "SELECT username FROM clan_users WHERE clan = ?";
-        try (Connection con = plugin.getMariaDBManager().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, clan);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    users.add(rs.getString("username"));
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return users;
+        return plugin.getStorageProvider().getClanMembers(clan);
     }
 
     private List<String> getInvites(String playerName) {
-        List<String> invites = new ArrayList<>();
-        String sql = "SELECT clan FROM clan_invites WHERE username = ?";
-        try (Connection con = plugin.getMariaDBManager().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, playerName);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    invites.add(rs.getString("clan"));
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return invites;
+        return plugin.getStorageProvider().getPlayerInvites(playerName);
     }
 
     private boolean isFriendlyFireEnabled(String clan) {
-        boolean enabled = false; // Por defecto off
-        String sql = "SELECT enabled FROM friendlyfire WHERE clan = ?";
-        try (Connection con = plugin.getMariaDBManager().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, clan);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    enabled = rs.getBoolean("enabled");
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return enabled;
+        return plugin.getStorageProvider().isFriendlyFireEnabled(clan);
     }
 
     @EventHandler

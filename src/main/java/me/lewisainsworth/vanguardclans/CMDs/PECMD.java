@@ -1,4 +1,4 @@
-package me.lewisainsworth.satipoclans.CMDs;
+package me.lewisainsworth.vanguardclans.CMDs;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -8,32 +8,32 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
-import me.lewisainsworth.satipoclans.SatipoClan;
-import me.lewisainsworth.satipoclans.Utils.Econo;
-import me.lewisainsworth.satipoclans.Utils.MSG;
-import static me.lewisainsworth.satipoclans.SatipoClan.prefix;
+import me.lewisainsworth.vanguardclans.VanguardClan;
+import me.lewisainsworth.vanguardclans.Utils.Econo;
+import me.lewisainsworth.vanguardclans.Utils.MSG;
+import static me.lewisainsworth.vanguardclans.VanguardClan.prefix;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import me.lewisainsworth.satipoclans.Database.MariaDBManager;
-import me.lewisainsworth.satipoclans.Utils.LangManager;
+import me.lewisainsworth.vanguardclans.Database.StorageProvider;
+import me.lewisainsworth.vanguardclans.Utils.LangManager;
 
 
 
 public class PECMD implements CommandExecutor, TabCompleter {
 
-    private final SatipoClan plugin;
-    private final MariaDBManager db;
+    private final VanguardClan plugin;
+    private final StorageProvider db;
     private final Econo econ;
     private final LangManager langManager; // Añadido
 
-    public PECMD(SatipoClan plugin) {
+    public PECMD(VanguardClan plugin) {
         this.plugin = plugin;
-        this.db = plugin.getMariaDBManager();
-        this.econ = SatipoClan.getEcon();
+        this.db = plugin.getStorageProvider();
+        this.econ = VanguardClan.getEcon();
         this.langManager = plugin.getLangManager(); // Inicializa
     }
 
@@ -108,37 +108,13 @@ public class PECMD implements CommandExecutor, TabCompleter {
 
 
     public static void addClanToHistory(OfflinePlayer player, String newClan) {
-        try (Connection con = SatipoClan.getInstance().getMariaDBManager().getConnection()) {
-            PreparedStatement select = con.prepareStatement("SELECT history FROM player_clan_history WHERE uuid = ?");
-            select.setString(1, player.getUniqueId().toString());
-
-            String updatedHistory = newClan;
-
-            try (ResultSet rs = select.executeQuery()) {
-                if (rs.next()) {
-                    String currentHistory = rs.getString("history");
-                    if (currentHistory != null && !Arrays.asList(currentHistory.split(",")).contains(newClan)) {
-                        updatedHistory = currentHistory + "," + newClan;
-                    } else {
-                        updatedHistory = currentHistory;
-                    }
-                }
-            }
-
-            PreparedStatement upsert = con.prepareStatement("""
-                REPLACE INTO player_clan_history (uuid, name, current_clan, history)
-                VALUES (?, ?, ?, ?)
-            """);
-
-            upsert.setString(1, player.getUniqueId().toString());
-            upsert.setString(2, player.getName());
-            upsert.setString(3, newClan);
-            upsert.setString(4, updatedHistory);
-            upsert.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        // Use StorageProvider method to add clan history
+        VanguardClan.getInstance().getStorageProvider().addPlayerClanHistory(
+            player.getName(), 
+            newClan, 
+            "joined", 
+            System.currentTimeMillis()
+        );
     }
 
 }
