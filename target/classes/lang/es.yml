@@ -17,7 +17,7 @@ user:
   # HELP COMMAND
   invalid_page_help: "&c Página inválida. Usa /clan help <1-{total_pages}>"
   help_header: "&6&m====================================="
-  help_title: "&6&l» &a&lꜱᴀᴛɪᴘᴏ&6&lᴄʟᴀɴꜱ &e&lᴄᴏᴍᴀɴᴅᴏꜱ &7(Página {page}/{total_pages})"
+  help_title: "&6&l» &a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ &e&lᴄᴏᴍᴀɴᴅᴏꜱ &7(Página {page}/{total_pages})"
   help_footer: "&6&m====================================="
   help_lines:
     - "&e➤ &f&lᴄʀᴇᴀᴛᴇ &7» &fꜰᴏʀᴍᴀ ᴜɴ ᴄʟᴀɴ ɴᴜᴇᴠᴏ ʏ ᴄᴏᴍɪᴇɴᴢᴀ ᴛᴜ ᴀᴠᴇɴᴛᴜʀᴀ."
@@ -64,7 +64,7 @@ user:
   stats_money: "&7Dinero del clan: &a${money}"
   stats_members_title: "&2Miembros:"
   stats_member_line: "&f- &l{member}"
-  stats_footer: "&2================== &7 [&a&lꜱᴀᴛɪᴘᴏ&6&lᴄʟᴀɴꜱ&7] &2=================="
+  stats_footer: "&2================== &7 [&a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ&7] &2=================="
   stats_error: "&c Error al cargar las estadísticas del clan."
   stats_avg_kd: "&eK/D promedio del clan: &b{avgKD}"
   stats_member_line: "&7- &f{member} &8| &eK/D: &b{kd}"
@@ -248,7 +248,7 @@ msg:
   help:
     commands:
       - "&8&m====================================="
-      - "&8&l» &a&lꜱᴀᴛɪᴘᴏ&6&lᴄʟᴀɴꜱ &c&lᴀᴅᴍɪɴ &8&l«"
+      - "&8&l» &a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ &c&lᴀᴅᴍɪɴ &8&l«"
       - "&8&m====================================="
       - "&e/clanadmin reports &7» &fᴍᴜᴇꜱᴛʀᴀ ᴛᴏᴅᴏꜱ ʟᴏꜱ ᴄʟᴀɴᴇꜱ ᴄᴏɴ ʀᴇᴘᴏʀᴛᴇꜱ ᴀᴄᴛɪᴠᴏꜱ."
       - "&e/clanadmin reload &7» &fʀᴇᴄᴀʀɢᴀ ʟᴀ ᴄᴏɴꜰɪɢᴜʀᴀᴄɪᴏ́ɴ ʏ ᴅᴀᴛᴏꜱ ᴅᴇʟ ᴘʟᴜɢɪɴ."

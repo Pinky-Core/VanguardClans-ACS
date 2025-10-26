@@ -177,7 +177,7 @@ public class VanguardClan extends JavaPlugin {
    }
 
    public void searchUpdates() {
-      String downloadUrl = "https://www.spigotmc.org/resources/VanguardClans.126207/";
+      String downloadUrl = "https://www.spigotmc.org/resources/vanguardclans-advanced-clans-system.126207";
       TextComponent link = new TextComponent(MSG.color("&6&lClick here to download the update!"));
       link.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, downloadUrl));
 
