@@ -2,7 +2,7 @@
 
 # 🛡️ VanguardClans | Advanced Clans System 🛡️
 
-VanguardClans es un plugin para servidores Minecraft que implementa un sistema avanzado y robusto de clanes, con invitaciones, privacidad, administración y almacenamiento en MariaDB.
+VanguardClans es un plugin para servidores Minecraft que implementa un sistema avanzado y robusto de clanes, con invitaciones, privacidad, administración y almacenamiento en YAML, MariaDB y SQLite.
 
 </div>
 
