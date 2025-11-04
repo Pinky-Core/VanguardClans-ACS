@@ -69,7 +69,7 @@ public class VanguardClan extends JavaPlugin {
       this.clanHomeDelay = getConfig().getInt("clan_home.teleport_delay", 5);
       prefix = getConfig().getString("prefix", "&7 [&a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ&7]&n");
       fh = new FileHandler(this);
-      updater = new Updater(this, 114316);
+      updater = new Updater(this, 126207);
       metrics = new Metrics(this, 20912);
       econ = new Econo(this);
       ClanUtils.init(this);
@@ -121,7 +121,18 @@ public class VanguardClan extends JavaPlugin {
          getLogger().info("Placeholders de VanguardClans registrados correctamente.");
       }
 
-      Bukkit.getConsoleSender().sendMessage(MSG.color("&av" + getDescription().getVersion() + " &2Enabled!"));
+      // Enhanced startup message
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&2&l============================================================"));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&a&l    VanguardClans &2Enabled Successfully!"));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&7"));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&e&lVersion: &f" + getDescription().getVersion()));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&e&lAuthor: &f" + String.join(", ", getDescription().getAuthors())));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&e&lStorage Type: &f" + getConfig().getString("storage.type", "yaml").toUpperCase()));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&e&lEconomy: &f" + (getConfig().getBoolean("economy.enabled", true) ? "&aEnabled" : "&cDisabled")));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&e&lPlaceholderAPI: &f" + (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null ? "&aHooked" : "&cNot Found")));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&e&lMax Clans: &f" + (getConfig().getInt("max-clans", -1) <= 0 ? "Unlimited" : getConfig().getInt("max-clans"))));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&7"));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&2&l============================================================"));
    }
 
 
@@ -129,8 +140,18 @@ public class VanguardClan extends JavaPlugin {
    public void onDisable() {
       if (storageProvider != null) {
          storageProvider.close();
+         getLogger().info("Storage provider closed successfully.");
       }
-      Bukkit.getConsoleSender().sendMessage(MSG.color("&av" + getDescription().getVersion() + " &cDisabled"));
+      
+      // Enhanced shutdown message
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&c&l============================================================"));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&c&l    VanguardClans Disabled!"));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&7"));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&e&lVersion: &f" + getDescription().getVersion()));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&7&lAll clan data has been saved."));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&7&lThank you for using VanguardClans!"));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&7"));
+      Bukkit.getConsoleSender().sendMessage(MSG.color("&c&l============================================================"));
    }
 
    public static VanguardClan getInstance() {

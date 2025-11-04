@@ -105,6 +105,15 @@ public class LangCMD implements CommandExecutor {
             return;
         }
         langManager.setCurrentLang(lang);
+        
+        // Recargar el plugin para actualizar todos los mensajes
+        langManager.reload();
+        
+        // Recargar las helpLines en CCMD
+        plugin.getCommand("clan").getExecutor();
+        if (plugin.getCommand("clan").getExecutor() instanceof CCMD) {
+            ((CCMD) plugin.getCommand("clan").getExecutor()).reloadHelpLines();
+        }
 
         String display = lang.toUpperCase() + " - " + languageNames.getOrDefault(lang, "Unknown");
         player.sendMessage(MSG.color(

@@ -19,6 +19,9 @@ user:
   help_header: "&6&m====================================="
   help_title: "&6&l» &a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ &e&lᴄᴏᴍᴀɴᴅᴏꜱ &7(Página {page}/{total_pages})"
   help_footer: "&6&m====================================="
+  help_previous_page: "&e« Página anterior "
+  help_next_page: "&e Página siguiente »"
+  help_click_to_page: "Haz clic para ir a la página {page}"
   help_lines:
     - "&e➤ &f&lᴄʀᴇᴀᴛᴇ &7» &fꜰᴏʀᴍᴀ ᴜɴ ᴄʟᴀɴ ɴᴜᴇᴠᴏ ʏ ᴄᴏᴍɪᴇɴᴢᴀ ᴛᴜ ᴀᴠᴇɴᴛᴜʀᴀ."
     - "&e➤ &f&lᴊᴏɪɴ &7» &fúɴᴇᴛᴇ ᴀ ᴜɴ ᴄʟᴀɴ ʏ ʜᴀᴢ ɴᴜᴇᴠᴏꜱ ᴀʟɪᴀᴅᴏꜱ."

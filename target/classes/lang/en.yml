@@ -20,6 +20,9 @@ user:
   help_header: "&6&m====================================="
   help_title: "&6&l» &a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ &e&lᴄᴏᴍᴍᴀɴᴅꜱ &7(Page {page}/{total_pages})"
   help_footer: "&6&m====================================="
+  help_previous_page: "&e« Previous page "
+  help_next_page: "&e Next page »"
+  help_click_to_page: "Click to go to page {page}"
   help_lines:
     - "&e➤ &f&lCREATE &7» &fCreate a new clan and start your adventure."
     - "&e➤ &f&lJOIN &7» &fJoin a clan and make new allies."

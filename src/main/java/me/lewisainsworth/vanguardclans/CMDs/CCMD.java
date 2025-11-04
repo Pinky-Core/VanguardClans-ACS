@@ -44,7 +44,7 @@ import net.md_5.bungee.api.chat.hover.content.Text;
 public class CCMD implements CommandExecutor, TabCompleter, Listener {
     private final VanguardClan plugin;
     private final LangManager langManager;
-    private final List<String> helpLines;
+    private List<String> helpLines;
     public Set<UUID> teleportingPlayers = new HashSet<>();
     private final Map<UUID, Long> homeCooldowns = new HashMap<>();
     
@@ -53,6 +53,10 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
     public CCMD(VanguardClan plugin, LangManager langManager) {
         this.plugin = plugin;
         this.langManager = langManager;
+        this.helpLines = langManager.getMessageList("user.help_lines");
+    }
+
+    public void reloadHelpLines() {
         this.helpLines = langManager.getMessageList("user.help_lines");
     }
 
@@ -313,13 +317,16 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
         int totalPages = (int) Math.ceil((double) helpLines.size() / linesPerPage);
 
         if (page < 1 || page > totalPages) {
-            player.sendMessage(MSG.color(prefix + "&c Página inválida. Usa /clan help <1-" + totalPages + ">"));
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.invalid_page_help")
+                .replace("{total_pages}", String.valueOf(totalPages))));
             return;
         }
 
-        player.sendMessage(MSG.color("&6&m====================================="));
-        player.sendMessage(MSG.color("&6&l» &a&lꜱᴀᴛɪᴘᴏ&6&lᴄʟᴀɴꜱ &e&lᴄᴏᴍᴀɴᴅᴏꜱ &7(Página " + page + "/" + totalPages + ")"));
-        player.sendMessage(MSG.color("&6&m====================================="));
+        player.sendMessage(MSG.color(langManager.getMessage("user.help_header")));
+        player.sendMessage(MSG.color(langManager.getMessage("user.help_title")
+            .replace("{page}", String.valueOf(page))
+            .replace("{total_pages}", String.valueOf(totalPages))));
+        player.sendMessage(MSG.color(langManager.getMessage("user.help_header")));
 
         int start = (page - 1) * linesPerPage;
         int end = Math.min(start + linesPerPage, helpLines.size());
@@ -332,21 +339,23 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
         TextComponent nav = new TextComponent();
 
         if (page > 1) {
-            TextComponent prev = new TextComponent(MSG.color("&e« Página anterior "));
+            TextComponent prev = new TextComponent(MSG.color(langManager.getMessage("user.help_previous_page")));
             prev.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/clan help " + (page - 1)));
-            prev.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("Haz clic para ir a la página " + (page - 1))));
+            prev.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
+                new Text(langManager.getMessage("user.help_click_to_page").replace("{page}", String.valueOf(page - 1)))));
             nav.addExtra(prev);
         }
 
         if (page < totalPages) {
-            TextComponent next = new TextComponent(MSG.color("&e Página siguiente »"));
+            TextComponent next = new TextComponent(MSG.color(langManager.getMessage("user.help_next_page")));
             next.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/clan help " + (page + 1)));
-            next.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("Haz clic para ir a la página " + (page + 1))));
+            next.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
+                new Text(langManager.getMessage("user.help_click_to_page").replace("{page}", String.valueOf(page + 1)))));
             nav.addExtra(next);
         }
 
         player.spigot().sendMessage(nav);
-        player.sendMessage(MSG.color("&6&m====================================="));
+        player.sendMessage(MSG.color(langManager.getMessage("user.help_footer")));
     }
 
 
@@ -829,15 +838,12 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
         String formattedMessage = String.join(" ", message);
 
-        try (Connection con = plugin.getStorageProvider().getConnection();
-            PreparedStatement stmt = con.prepareStatement("SELECT username FROM clan_users WHERE clan=?")) {
-            stmt.setString(1, playerClan);
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                String userName = rs.getString("username");
+        try {
+            List<String> clanMembers = plugin.getStorageProvider().getClanMembers(playerClan);
+            
+            for (String userName : clanMembers) {
                 Player recipient = Bukkit.getPlayerExact(userName);
-                if (recipient != null) {
+                if (recipient != null && recipient.isOnline()) {
                     recipient.sendMessage(MSG.color(langManager.getMessage("user.chat_format")
                         .replace("{clan}", plugin.getStorageProvider().getColoredClanName(playerClan))
                         .replace("{player}", player.getName())
@@ -845,7 +851,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                 }
             }
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.chat_error")));
         }
@@ -862,43 +868,28 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
-        try (Connection con = plugin.getStorageProvider().getConnection();
-            PreparedStatement checkLeader = con.prepareStatement("SELECT leader FROM clans WHERE name=?");
-            PreparedStatement removeUser = con.prepareStatement("DELETE FROM clan_users WHERE username=? AND clan=?");
-            PreparedStatement countUsers = con.prepareStatement("SELECT username FROM clan_users WHERE clan=?");
-            PreparedStatement updateLeader = con.prepareStatement("UPDATE clans SET leader=? WHERE name=?")) {
+        try {
+            // Check if player is leader
+            String clanLeader = plugin.getStorageProvider().getClanLeader(playerClan);
+            boolean isLeader = clanLeader != null && clanLeader.equalsIgnoreCase(playerName);
 
-            checkLeader.setString(1, playerClan);
-            ResultSet leaderRs = checkLeader.executeQuery();
-            boolean isLeader = false;
-            if (leaderRs.next()) {
-                isLeader = leaderRs.getString("leader").equalsIgnoreCase(playerName);
-            }
+            // Remove player from clan
+            plugin.getStorageProvider().removePlayerFromClan(playerName, playerClan);
 
-            removeUser.setString(1, playerName);
-            removeUser.setString(2, playerClan);
-            removeUser.executeUpdate();
-
-            countUsers.setString(1, playerClan);
-            ResultSet countRs = countUsers.executeQuery();
-
-            List<String> remaining = new ArrayList<>();
-            while (countRs.next()) {
-                remaining.add(countRs.getString("username"));
-            }
+            // Get remaining members
+            List<String> remaining = plugin.getStorageProvider().getClanMembers(playerClan);
 
             if (remaining.isEmpty()) {
-                deleteEntireClanData(con, playerClan);
-                plugin.getStorageProvider().reloadCache();
+                // Delete clan if empty
+                plugin.getStorageProvider().deleteClan(playerClan);
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.clan_deleted_empty")));
                 return;
             }
 
             if (isLeader) {
+                // Assign new random leader
                 String newLeader = remaining.get(new Random().nextInt(remaining.size()));
-                updateLeader.setString(1, newLeader);
-                updateLeader.setString(2, playerClan);
-                updateLeader.executeUpdate();
+                plugin.getStorageProvider().updateClanLeader(playerClan, newLeader);
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.leader_left").replace("{newLeader}", newLeader)));
             } else {
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.left_clan")));
@@ -906,7 +897,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
             plugin.getStorageProvider().reloadCache();
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.leave_error")));
         }
@@ -928,63 +919,39 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
-        try (Connection con = plugin.getStorageProvider().getConnection();
-            PreparedStatement clanCheck = con.prepareStatement("SELECT privacy FROM clans WHERE name=?");
-            PreparedStatement inviteCheck = con.prepareStatement("SELECT invite_time FROM clan_invites WHERE username=? AND clan=?");
-            PreparedStatement addUser = con.prepareStatement("INSERT INTO clan_users (username, clan) VALUES (?, ?)");
-            PreparedStatement deleteInvite = con.prepareStatement("DELETE FROM clan_invites WHERE username=? AND clan=?")) {
-
-            clanCheck.setString(1, clanToJoin);
-            ResultSet clanRs = clanCheck.executeQuery();
-
-            if (!clanRs.next()) {
+        try {
+            // Check if clan exists
+            if (!plugin.getStorageProvider().clanExists(clanToJoin)) {
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.clan_not_exist")));
                 return;
             }
 
-            String privacy = clanRs.getString("privacy");
+            String privacy = plugin.getStorageProvider().getClanPrivacy(clanToJoin);
             boolean canJoin = "Public".equalsIgnoreCase(privacy);
 
+            // If clan is private, check for invitation
             if (!canJoin) {
-                inviteCheck.setString(1, playerName);
-                inviteCheck.setString(2, clanToJoin);
-                try (ResultSet inviteRs = inviteCheck.executeQuery()) {
-                    if (inviteRs.next()) {
-                        long inviteTime = inviteRs.getLong("invite_time");
-                        long currentTime = System.currentTimeMillis();
-                        if (currentTime - inviteTime <= INVITE_EXPIRATION_MS) {
-                            canJoin = true;
-                        } else {
-                            sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.invite_expired")));
-                            try (PreparedStatement delExpired = con.prepareStatement("DELETE FROM clan_invites WHERE username=? AND clan=?")) {
-                                delExpired.setString(1, playerName);
-                                delExpired.setString(2, clanToJoin);
-                                delExpired.executeUpdate();
-                            }
-                            return;
-                        }
-                    }
+                canJoin = plugin.getStorageProvider().isPlayerInvitedToClan(playerName, clanToJoin);
+                
+                if (!canJoin) {
+                    sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.clan_private")));
+                    return;
                 }
             }
 
-            if (!canJoin) {
-                sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.clan_private")));
-                return;
-            }
-
-            addUser.setString(1, playerName);
-            addUser.setString(2, clanToJoin);
-            addUser.executeUpdate();
-
-            deleteInvite.setString(1, playerName);
-            deleteInvite.setString(2, clanToJoin);
-            deleteInvite.executeUpdate();
-
+            // Add player to clan
+            plugin.getStorageProvider().addPlayerToClan(playerName, clanToJoin);
+            
+            // Remove invitation if exists
+            plugin.getStorageProvider().removeClanInvite(clanToJoin, playerName);
+            
+            // Add to clan history
             PECMD.addClanToHistory(player, clanToJoin);
 
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.joined_clan").replace("{clan}", clanToJoin)));
+            plugin.getStorageProvider().reloadCache();
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.join_error")));
         }
@@ -1292,17 +1259,13 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
         boolean enabled = args[1].equalsIgnoreCase("on");
 
-        try (Connection con = plugin.getStorageProvider().getConnection();
-            PreparedStatement stmt = con.prepareStatement("REPLACE INTO friendlyfire (clan, enabled) VALUES (?, ?)")) {
-
-            stmt.setString(1, playerClan);
-            stmt.setBoolean(2, enabled);
-            stmt.executeUpdate();
+        try {
+            plugin.getStorageProvider().setFriendlyFireEnabled(playerClan, enabled);
 
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ff_status")
                 .replace("{status}", enabled ? langManager.getMessage("status.enabled") : langManager.getMessage("status.disabled"))));
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ff_error")));
         }
@@ -1347,19 +1310,10 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
     private boolean areClansAllied(String clan1, String clan2) {
         if (clan1.equalsIgnoreCase(clan2)) return true;
-
-        String sql = "SELECT 1 FROM alliances WHERE (clan1 = ? AND clan2 = ?) OR (clan1 = ? AND clan2 = ?)";
-        try (Connection con = plugin.getStorageProvider().getConnection();
-            PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, clan1);
-            ps.setString(2, clan2);
-            ps.setString(3, clan2);
-            ps.setString(4, clan1);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException e) {
+        
+        try {
+            return plugin.getStorageProvider().areClansAllied(clan1, clan2);
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return false;
@@ -1537,29 +1491,19 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
-        try (Connection con = plugin.getStorageProvider().getConnection();
-            PreparedStatement check = con.prepareStatement("SELECT name FROM clans WHERE name = ?");
-            PreparedStatement checkPending = con.prepareStatement("SELECT 1 FROM pending_alliances WHERE requester = ? AND target = ?");
-            PreparedStatement insert = con.prepareStatement("INSERT INTO pending_alliances (requester, target) VALUES (?, ?)")) {
-
-            check.setString(1, targetClan);
-            ResultSet rs = check.executeQuery();
-            if (!rs.next()) {
+        try {
+            if (!plugin.getStorageProvider().clanExists(targetClan)) {
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ally_target_not_exist").replace("{target}", targetClan)));
                 return;
             }
 
-            checkPending.setString(1, playerClan);
-            checkPending.setString(2, targetClan);
-            ResultSet rsPending = checkPending.executeQuery();
-            if (rsPending.next()) {
+            List<String> pendingAlliances = plugin.getStorageProvider().getPendingAlliances(targetClan);
+            if (pendingAlliances.contains(playerClan)) {
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ally_already_requested")));
                 return;
             }
 
-            insert.setString(1, playerClan);
-            insert.setString(2, targetClan);
-            insert.executeUpdate();
+            plugin.getStorageProvider().addPendingAlliance(playerClan, targetClan);
 
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ally_request_sent").replace("{target}", targetClan)));
 
@@ -1570,7 +1514,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                 }
             }
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ally_request_error")));
         }
@@ -1583,35 +1527,16 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
-        try (Connection con = plugin.getStorageProvider().getConnection();
-            PreparedStatement checkPending = con.prepareStatement("SELECT 1 FROM pending_alliances WHERE requester = ? AND target = ?");
-            PreparedStatement deletePending = con.prepareStatement("DELETE FROM pending_alliances WHERE requester = ? AND target = ?");
-            PreparedStatement insertAlliance = con.prepareStatement("INSERT IGNORE INTO alliances (clan1, clan2) VALUES (?, ?), (?, ?)")) {
-
-            checkPending.setString(1, requesterClan);
-            checkPending.setString(2, playerClan);
-            ResultSet rs = checkPending.executeQuery();
-
-            if (!rs.next()) {
+        try {
+            List<String> pendingAlliances = plugin.getStorageProvider().getPendingAlliances(playerClan);
+            if (!pendingAlliances.contains(requesterClan)) {
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ally_accept_no_pending")));
                 return;
             }
 
-            con.setAutoCommit(false);
-
-            insertAlliance.setString(1, requesterClan);
-            insertAlliance.setString(2, playerClan);
-            insertAlliance.setString(3, playerClan);
-            insertAlliance.setString(4, requesterClan);
-            insertAlliance.executeUpdate();
-
-            deletePending.setString(1, requesterClan);
-            deletePending.setString(2, playerClan);
-            deletePending.executeUpdate();
-
-            con.commit();
+            plugin.getStorageProvider().createAlliance(requesterClan, playerClan, false);
+            plugin.getStorageProvider().removePendingAlliance(requesterClan, playerClan);
             plugin.getStorageProvider().reloadCache();
-            con.setAutoCommit(true);
 
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ally_accept_success").replace("{requester}", requesterClan)));
 
@@ -1622,14 +1547,9 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                 }
             }
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ally_accept_error")));
-            try {
-                plugin.getStorageProvider().getConnection().setAutoCommit(true);
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-            }
         }
     }
 
@@ -1640,22 +1560,14 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
-        try (Connection con = plugin.getStorageProvider().getConnection();
-            PreparedStatement checkPending = con.prepareStatement("SELECT 1 FROM pending_alliances WHERE requester = ? AND target = ?");
-            PreparedStatement deletePending = con.prepareStatement("DELETE FROM pending_alliances WHERE requester = ? AND target = ?")) {
-
-            checkPending.setString(1, requesterClan);
-            checkPending.setString(2, playerClan);
-            ResultSet rs = checkPending.executeQuery();
-
-            if (!rs.next()) {
+        try {
+            List<String> pendingAlliances = plugin.getStorageProvider().getPendingAlliances(playerClan);
+            if (!pendingAlliances.contains(requesterClan)) {
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ally_decline_no_pending")));
                 return;
             }
 
-            deletePending.setString(1, requesterClan);
-            deletePending.setString(2, playerClan);
-            deletePending.executeUpdate();
+            plugin.getStorageProvider().removePendingAlliance(requesterClan, playerClan);
 
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ally_decline_success").replace("{requester}", requesterClan)));
 
@@ -1666,7 +1578,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                 }
             }
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ally_decline_error")));
         }
@@ -1679,22 +1591,16 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
-        try (Connection con = plugin.getStorageProvider().getConnection();
-            PreparedStatement deleteAlliance = con.prepareStatement("DELETE FROM alliances WHERE (clan1 = ? AND clan2 = ?) OR (clan1 = ? AND clan2 = ?)")) {
-
-            deleteAlliance.setString(1, playerClan);
-            deleteAlliance.setString(2, targetClan);
-            deleteAlliance.setString(3, targetClan);
-            deleteAlliance.setString(4, playerClan);
-            int affected = deleteAlliance.executeUpdate();
-
-            if (affected > 0) {
+        try {
+            List<String> alliances = plugin.getStorageProvider().getClanAlliances(playerClan);
+            if (alliances.contains(targetClan)) {
+                plugin.getStorageProvider().removeAlliance(playerClan, targetClan);
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ally_remove_success").replace("{target}", targetClan)));
             } else {
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ally_remove_none")));
             }
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("command.ally_remove_error")));
         }
