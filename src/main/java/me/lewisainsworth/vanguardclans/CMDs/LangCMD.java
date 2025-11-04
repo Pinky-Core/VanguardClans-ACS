@@ -50,7 +50,7 @@ public class LangCMD implements CommandExecutor {
 
         String currentLang = langManager.getCurrentLang();
         String langDisplay = currentLang.toUpperCase() + " - " +
-                languageNames.getOrDefault(currentLang, "Unknown");
+                languageNames.getOrDefault(currentLang, "Custom");
         String langDisplayName = plugin.getLangCMD().getLanguageDisplayName(currentLang);
 
         player.sendMessage(MSG.color(
@@ -115,7 +115,7 @@ public class LangCMD implements CommandExecutor {
             ((CCMD) plugin.getCommand("clan").getExecutor()).reloadHelpLines();
         }
 
-        String display = lang.toUpperCase() + " - " + languageNames.getOrDefault(lang, "Unknown");
+        String display = lang.toUpperCase() + " - " + languageNames.getOrDefault(lang, "Custom");
         player.sendMessage(MSG.color(
                 langManager.getMessage("lang.lang_changed")
                         .replace("{lang}", display)
@@ -123,6 +123,6 @@ public class LangCMD implements CommandExecutor {
     }
 
     public String getLanguageDisplayName(String code) {
-        return languageNames.getOrDefault(code, "Unknown");
+        return languageNames.getOrDefault(code, "Custom");
     }
 }
