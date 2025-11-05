@@ -42,8 +42,6 @@ user:
 
   # KICK COMMAND
   usage_kick: "&c &lUSO:&f /clan kick <jugador>"
-  console_command_only: "&c Comandos de consola: &f/clan reload."
-  no_clan: "&c No perteneces a ningún clan."
   kick_only_leader: "&c Solo el líder del clan puede expulsar miembros."
   kick_cant_kick_self: "&c No puedes expulsarte a ti mismo. Usa /clan leave."
   kick_player_not_member: "&c El jugador no es miembro del clan."
@@ -66,7 +64,6 @@ user:
   stats_privacy: "&7Privacidad: &f{privacy}"
   stats_money: "&7Dinero del clan: &a${money}"
   stats_members_title: "&2Miembros:"
-  stats_member_line: "&f- &l{member}"
   stats_footer: "&2================== &7 [&a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ&7] &2=================="
   stats_error: "&c Error al cargar las estadísticas del clan."
   stats_avg_kd: "&eK/D promedio del clan: &b{avgKD}"
@@ -74,7 +71,6 @@ user:
 
   # INVITE COMMAND
   only_players_invite: "&c Solo los jugadores pueden enviar invitaciones."
-  no_clan: "&c No perteneces a ningún clan."
   invite_only_leader: "&c ¡Solo el líder puede invitar jugadores al clan!"
   cant_invite_self: "&c ¡No puedes invitarte a ti mismo!"
   player_not_online: "&c El jugador no está en línea."
@@ -99,7 +95,6 @@ user:
 
   # JOIN COMMAND
   only_players_join: "&c Solo los jugadores pueden unirse a clanes."
-  already_in_clan: "&c Ya perteneces a un clan."
   clan_not_exist: "&c El clan no existe."
   invite_expired: "&c Tu invitación para unirte al clan ha expirado."
   clan_private: "&c Este clan es &lPrivado&c."
@@ -207,9 +202,7 @@ command:
   ally_remove_error: "&c Error al eliminar la alianza."
 
   # ALLY FF COMMAND
-  allyff_usage: "&c &lUso correcto:&f /clan ally ff <on|off>"
-  allyff_status: "&a El fuego amigo entre aliados ahora está: &e{status}"
-  allyff_error: "&c Error al modificar la configuración de fuego amigo entre aliados."
+  
 
 
 # STATUS MESSAGES

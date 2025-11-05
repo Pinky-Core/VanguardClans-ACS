@@ -2,7 +2,7 @@
 user:
   console_command_only: "&c Console commands: &f/clanadmin reload."
   no_permission: "&c You do not have permission to use this command."
-  commands_blocked_world: "&cYou cannot use clan commands in this world."
+  command_blocked_world: "&cYou cannot use clan commands in this world."
 
 
   invalid_page_number: "&c Invalid page number."
@@ -43,8 +43,6 @@ user:
 
   # KICK COMMAND
   usage_kick: "&c &lUSAGE:&f /clan kick <player>"
-  console_command_only: "&c Console commands: &f/clanadmin reload."
-  no_clan: "&c You are not in any clan."
   kick_only_leader: "&c Only the clan leader can kick members."
   kick_cant_kick_self: "&c You cannot kick yourself. Use /clan leave."
   kick_player_not_member: "&c The player is not a member of the clan."
@@ -67,7 +65,6 @@ user:
   stats_privacy: "&7Privacy: &f{privacy}"
   stats_money: "&7Clan money: &a${money}"
   stats_members_title: "&2Members:"
-  stats_member_line: "&f- &l{member}"
   stats_footer: "&2================== &7 [&a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ&7] &2=================="
   stats_error: "&c Error loading clan statistics."
   stats_avg_kd: "&eAverage clan K/D: &b{avgKD}"
@@ -75,7 +72,6 @@ user:
 
   # INVITE COMMAND
   only_players_invite: "&c Only players can send invitations."
-  no_clan: "&c You are not in any clan."
   invite_only_leader: "&c Only the leader can invite players to the clan!"
   cant_invite_self: "&c You cannot invite yourself!"
   player_not_online: "&c The player is not online."
@@ -100,7 +96,6 @@ user:
 
   # JOIN COMMAND
   only_players_join: "&c Only players can join clans."
-  already_in_clan: "&c You are already in a clan."
   clan_not_exist: "&c The clan does not exist."
   invite_expired: "&c Your invitation to join the clan has expired."
   clan_private: "&c This clan is &lPrivate&c."
@@ -154,7 +149,7 @@ user:
   home_set: "&aClan home set."
   home_deleted: "&aThe clan home has been deleted."
   teleport_cancelled: "&cMovement detected. Teleport cancelled."
-  on_teleport: "&cYa estás esperando un teleport."
+  on_teport: "&cYa estás esperando un teleport."
 
 
 # HANDLERS
@@ -207,9 +202,7 @@ command:
   ally_remove_error: "&c Error removing the alliance."
 
   # ALLY FF COMMAND
-  allyff_usage: "&c &lCorrect usage:&f /clan ally ff <on|off>"
-  allyff_status: "&a Ally friendly fire is now: &e{status}"
-  allyff_error: "&c Error modifying ally friendly fire setting."
+  
 
 
 # STATUS MESSAGES
