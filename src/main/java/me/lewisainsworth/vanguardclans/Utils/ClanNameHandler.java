@@ -2,11 +2,6 @@ package me.lewisainsworth.vanguardclans.Utils;
 
 import me.lewisainsworth.vanguardclans.VanguardClan;
 import me.lewisainsworth.vanguardclans.Utils.LangManager;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-
 import org.bukkit.ChatColor;
 
 
@@ -18,7 +13,7 @@ import me.lewisainsworth.vanguardclans.Utils.MSG;
 
 public class ClanNameHandler {
 
-    private static final int MAX_VISIBLE_LENGTH = 16;
+    public static final int DEFAULT_MAX_VISIBLE_LENGTH = 16;
     private static final Pattern HEX_PATTERN = Pattern.compile("&#[a-fA-F0-9]{6}");
     private static final Pattern FORMAT_CODES = Pattern.compile("&[0-9a-fl-or]");
 
@@ -28,19 +23,28 @@ public class ClanNameHandler {
         return FORMAT_CODES.matcher(noHex).replaceAll("");
     }
 
-    public static boolean isValid(String raw) {
-        return getVisibleName(raw).length() <= MAX_VISIBLE_LENGTH;
+    public static boolean isValid(String raw, int maxVisibleLength) {
+        if (maxVisibleLength <= 0) return true;
+        return getVisibleName(raw).length() <= maxVisibleLength;
+    }
+
+    private static int getMaxVisibleLength(VanguardClan plugin) {
+        if (plugin == null || plugin.getFH() == null) {
+            return DEFAULT_MAX_VISIBLE_LENGTH;
+        }
+        return plugin.getFH().getConfig().getInt("clan-name.max-length", DEFAULT_MAX_VISIBLE_LENGTH);
     }
 
     public static void insertClan(VanguardClan plugin, String rawName, String founder, String leader) {
         LangManager lang = plugin.getLangManager();
+        int maxVisibleLength = getMaxVisibleLength(plugin);
 
         String visibleName = getVisibleName(rawName);
 
-        if (!isValid(rawName)) {
+        if (!isValid(rawName, maxVisibleLength)) {
             throw new IllegalArgumentException(
                 MSG.color(lang.getMessageWithPrefix("user.create_name_too_long")
-                    .replace("{max}", String.valueOf(MAX_VISIBLE_LENGTH)))
+                    .replace("{max}", String.valueOf(maxVisibleLength)))
             );
         }
 
@@ -59,15 +63,16 @@ public class ClanNameHandler {
 
     public static void updateClanName(VanguardClan plugin, String oldName, String newRawName) {
         LangManager lang = plugin.getLangManager();
+        int maxVisibleLength = getMaxVisibleLength(plugin);
 
         String newVisible = ChatColor.stripColor(MSG.color(newRawName)); // quitar color
         String newColored = MSG.color(newRawName); // aplicar color
 
         // Validar longitud visible
-        if (!isValid(newVisible)) {
+        if (!isValid(newVisible, maxVisibleLength)) {
             throw new IllegalArgumentException(
                 MSG.color(lang.getMessageWithPrefix("user.edit_name_too_long")
-                    .replace("{max}", String.valueOf(MAX_VISIBLE_LENGTH)))
+                    .replace("{max}", String.valueOf(maxVisibleLength)))
             );
         }
 

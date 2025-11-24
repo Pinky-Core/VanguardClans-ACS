@@ -3,6 +3,7 @@ user:
   console_command_only: "&c Comandos de consola: &f/clansadmin reload."
   no_permission: "&c No tienes permisos para usar este comando."
   command_blocked_world: "&cNo puedes usar comandos de clanes en este mundo."
+  command_not_found: "&cNo se encontro comando. Usa /clan help."
 
   invalid_page_number: "&c Número de página inválido."
   only_players_help: "&c Solo los jugadores pueden ver la ayuda paginada."

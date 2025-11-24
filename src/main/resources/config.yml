@@ -20,6 +20,12 @@
 
 prefix: "&7[&a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ&7]"
 
+
+commands:
+  # Cuando es true, /clan sin argumentos muestra la pagina principal de ayuda.
+  # Cuando es false, /clan sin argumentos devolvera un mensaje de "No se encontro comando".
+  show-main-help-page: true
+
 storage:
   # Storage type: mariadb, mysql, h2, sqlite, yaml
   # YAML is recommended for small servers or when you don't have a database
@@ -89,6 +95,11 @@ blocked-worlds:
 
 
 max-clans: 0 # 0 = ILIMITADO
+
+
+clan-name:
+  # Limite de caracteres visibles (los colores no cuentan). 0 = sin limite.
+  max-length: 16
 
 economy:
   enabled: true

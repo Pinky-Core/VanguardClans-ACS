@@ -73,9 +73,19 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
         String playerName = player.getName();
         String playerClan = this.getPlayerClan(playerName);
+        boolean showMainHelpPage = shouldShowMainHelpPage();
 
         // Comando de ayuda paginada
-        if (args.length < 1 || args[0].equalsIgnoreCase("help")) {
+        if (args.length < 1) {
+            if (!showMainHelpPage) {
+                sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.command_not_found")));
+                return true;
+            }
+            help(player, 1);
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("help")) {
             int page = 1;
             if (args.length > 1) {
                 try {
@@ -85,12 +95,11 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                     return true;
                 }
             }
-            
-            // Solo llamamos a tu método help que ya tiene la paginación y botones
+
+            // Solo llamamos a tu mActodo help que ya tiene la paginaciA3n y botones
             help(player, page);
             return true;
         }
-
         // Resto de comandos con permisos individuales
         switch (args[0].toLowerCase()) {
             case "create":
@@ -301,7 +310,11 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                 break;
 
             default:
-                this.help(player, 1);
+                if (showMainHelpPage) {
+                    this.help(player, 1);
+                } else {
+                    sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.command_not_found")));
+                }
                 break;
         }
 
@@ -1157,6 +1170,13 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
         String playerName = player.getName();
         FileConfiguration config = plugin.getFH().getConfig();
         Econo econ = VanguardClan.getEcon();
+        int maxClanNameLength = getMaxClanNameLength();
+
+        if (maxClanNameLength > 0 && plainClanName.length() > maxClanNameLength) {
+            sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.create_name_too_long")
+                .replace("{max}", String.valueOf(maxClanNameLength))));
+            return;
+        }
 
         // Validar nombres bloqueados
         if (config.getStringList("names-blocked.blocked").stream().anyMatch(b -> b.equalsIgnoreCase(plainClanName))) {
@@ -1641,6 +1661,14 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
     }
 
 
+
+    private boolean shouldShowMainHelpPage() {
+        return plugin.getFH().getConfig().getBoolean("commands.show-main-help-page", true);
+    }
+
+    private int getMaxClanNameLength() {
+        return plugin.getFH().getConfig().getInt("clan-name.max-length", ClanNameHandler.DEFAULT_MAX_VISIBLE_LENGTH);
+    }
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String label, String[] args) {
