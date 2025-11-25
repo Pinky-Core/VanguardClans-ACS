@@ -671,6 +671,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             sender.sendMessage(MSG.color(langManager.getMessage("user.stats_founder").replace("{founder}", founder != null ? founder : "-")));
             sender.sendMessage(MSG.color(langManager.getMessage("user.stats_leader").replace("{leader}", leader != null ? leader : "-")));
             sender.sendMessage(MSG.color(langManager.getMessage("user.stats_privacy").replace("{privacy}", privacy != null ? privacy : "public")));
+            sender.sendMessage(MSG.color(langManager.getMessage("user.stats_money").replace("{money}", formatMoney(sp.getClanMoney(clanName)))));
 
             sender.sendMessage(MSG.color(langManager.getMessage("user.stats_members_title")));
 
@@ -705,6 +706,13 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
         if (playerClan == null || playerClan.isEmpty()) {
             player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_clan")));
+            return;
+        }
+
+        if (args.length == 1) {
+            StorageProvider storage = plugin.getStorageProvider();
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_balance")
+                .replace("{balance}", formatMoney(storage.getClanMoney(playerClan)))));
             return;
         }
 
