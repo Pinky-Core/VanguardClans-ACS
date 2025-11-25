@@ -14,6 +14,14 @@ user:
   usage_invite: "&c &lUSAGE:&f /clan invite <player>"
   usage_ff: "&c &lUSAGE:&f /clan ff <on|off>"
   usage_ally: "&c &lUSAGE:&f /clan ally <request|accept|decline|remove> <clanName>"
+  economy_usage: "&c &lUSAGE:&f /clan economy <deposit|withdraw> <amount>"
+  economy_invalid_amount: "&c Amount must be a positive number."
+  economy_disabled: "&c Clan economy is disabled."
+  economy_not_enough_player: "&c You do not have enough money."
+  economy_not_enough_clan: "&c The clan bank does not have enough money."
+  economy_deposit_success: "&aDeposited &f${amount} &ato the clan bank. Balance: &f${balance}"
+  economy_withdraw_success: "&aWithdrawn &f${amount} &afrom the clan bank. Balance: &f${balance}"
+  economy_only_leader_withdraw: "&c Only the clan leader can withdraw clan money."
   no_clan: "&c You are not in any clan."
 
   # HELP COMMAND

@@ -7,10 +7,12 @@ import me.lewisainsworth.vanguardclans.Utils.MSG;
 import static me.lewisainsworth.vanguardclans.VanguardClan.prefix;
 import me.lewisainsworth.vanguardclans.Utils.LangManager;
 import me.lewisainsworth.vanguardclans.Utils.ClanNameHandler;
+import me.lewisainsworth.vanguardclans.Database.StorageProvider;
 
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.text.DecimalFormat;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -307,6 +309,14 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                     return true;
                 }
                 this.edit(player, playerClan, args);
+                break;
+
+            case "economy":
+                if (!player.hasPermission("vanguardclans.user.economy")) {
+                    sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_permission")));
+                    return true;
+                }
+                handleClanEconomy(player, playerClan, args);
                 break;
 
             default:
@@ -686,105 +696,83 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
         }
     }
 
+    private void handleClanEconomy(Player player, String playerClan, String[] args) {
+        FileConfiguration config = plugin.getFH().getConfig();
+        if (!config.getBoolean("economy.enabled", true)) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_disabled")));
+            return;
+        }
 
+        if (playerClan == null || playerClan.isEmpty()) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_clan")));
+            return;
+        }
 
-
-
-    /* private void Economy(Player player, String clan, String[] args) {
         if (args.length != 3) {
-            player.sendMessage(MSG.color(prefix + "&c USO: /clan economy <depositar|retirar> <cantidad>"));
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_usage")));
             return;
         }
 
-        String playerClan = getPlayerClan(player.getName());
-        if (playerClan == null) {
-            player.sendMessage(MSG.color(prefix + "&c No perteneces a ningún clan."));
+        String action = args[1].toLowerCase(Locale.ROOT);
+        boolean deposit = action.equals("deposit") || action.equals("depositar");
+        boolean withdraw = action.equals("withdraw") || action.equals("retirar");
+
+        if (!deposit && !withdraw) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_usage")));
             return;
         }
 
-        String type = args[1].toLowerCase(Locale.ROOT);
-        int amount;
-
+        double amount;
         try {
-            amount = Integer.parseInt(args[2]);
+            amount = Double.parseDouble(args[2]);
             if (amount <= 0) throw new NumberFormatException();
         } catch (NumberFormatException e) {
-            player.sendMessage(MSG.color(prefix + "&c La cantidad debe ser un número positivo."));
-            return;
-        }
-
-        if (!type.equals("deposit") && !type.equals("withdraw")) {
-            player.sendMessage(MSG.color(prefix + "&c Operación inválida. Usa deposit o withdraw."));
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_invalid_amount")));
             return;
         }
 
         Econo econ = VanguardClan.getEcon();
-        double playerBalance = econ.getBalance(player);
+        StorageProvider storage = plugin.getStorageProvider();
+        double clanBalance = storage.getClanMoney(playerClan);
 
-        if (type.equals("deposit") && playerBalance < amount) {
-            player.sendMessage(MSG.color(prefix + "&c No tienes suficiente dinero para depositar."));
+        if (deposit) {
+            if (!econ.has(player, amount)) {
+                player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_not_enough_player")));
+                return;
+            }
+
+            storage.setClanMoney(playerClan, clanBalance + amount);
+            econ.withdraw(player, amount);
+
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_deposit_success")
+                .replace("{amount}", formatMoney(amount))
+                .replace("{balance}", formatMoney(storage.getClanMoney(playerClan)))));
             return;
         }
 
-        try (Connection con = plugin.getStorageProvider().getConnection()) {
-            con.setAutoCommit(false);
-
-            try (PreparedStatement stmt = con.prepareStatement("SELECT money FROM clans WHERE name = ? FOR UPDATE")) {
-                stmt.setString(1, playerClan);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (!rs.next()) {
-                        player.sendMessage(MSG.color(prefix + "&c No se encontró el clan."));
-                        con.rollback();
-                        return;
-                    }
-
-                    double clanMoney = rs.getDouble("money");
-
-                    if (type.equals("withdraw")) {
-                        if (clanMoney < amount) {
-                            player.sendMessage(MSG.color(prefix + "&c El clan no tiene suficiente dinero."));
-                            con.rollback();
-                            return;
-                        }
-                    }
-
-                    String sqlUpdate = type.equals("deposit")
-                        ? "UPDATE clans SET money = money + ? WHERE name = ?"
-                        : "UPDATE clans SET money = money - ? WHERE name = ?";
-
-                    try (PreparedStatement updateStmt = con.prepareStatement(sqlUpdate)) {
-                        updateStmt.setInt(1, amount);
-                        updateStmt.setString(2, playerClan);
-                        int rows = updateStmt.executeUpdate();
-                        if (rows == 0) {
-                            player.sendMessage(MSG.color(prefix + "&c No se encontró el clan."));
-                            con.rollback();
-                            return;
-                        }
-                    }
-
-                    if (type.equals("deposit")) {
-                        econ.withdraw(player, amount);
-                        player.sendMessage(MSG.color(prefix + "&2 Depositaste &a$" + amount + " &2al clan."));
-                    } else {
-                        econ.deposit(player, amount);
-                        player.sendMessage(MSG.color(prefix + "&2 Retiraste &a$" + amount + " &2del clan."));
-                    }
-
-                    con.commit();
-                    plugin.getStorageProvider().reloadCache();
-                }
-            } catch (SQLException e) {
-                con.rollback();
-                throw e;
-            } finally {
-                con.setAutoCommit(true);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            player.sendMessage(MSG.color(prefix + "&c Ocurrió un error al procesar la acción de economía."));
+        if (!isLeader(player, playerClan)) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_only_leader_withdraw")));
+            return;
         }
-    } */
+
+        if (clanBalance < amount) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_not_enough_clan")));
+            return;
+        }
+
+        storage.setClanMoney(playerClan, clanBalance - amount);
+        econ.deposit(player, amount);
+
+        player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_withdraw_success")
+            .replace("{amount}", formatMoney(amount))
+            .replace("{balance}", formatMoney(storage.getClanMoney(playerClan)))));
+    }
+
+    private String formatMoney(double amount) {
+        DecimalFormat formatter = new DecimalFormat("#,##0.##");
+        return formatter.format(amount);
+    }
+
 
     private void inviteToClan(CommandSender sender, String playerToInvite) {
         String prefix = VanguardClan.prefix;
@@ -1683,7 +1671,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             case 1 -> completions.addAll(List.of(
                     "create", "disband", "report", "list", "join",
                     "kick", "invite", "chat", "leave", "stats", "resign", "edit",
-                    "ff", "ally", "help", "home", "sethome", "delhome"
+                    "ff", "ally", "help", "home", "sethome", "delhome", "economy"
             ));
 
             case 2 -> {
@@ -1695,7 +1683,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                     case "invite", "kick" -> {
                         if (isInClan(playerClan) && isLeader(player, playerClan)) completions.addAll(getOnlinePlayerNames());
                     }
-                    //case "economy" -> completions.addAll(List.of("deposit", "withdraw"));
+                    case "economy" -> completions.addAll(List.of("deposit", "withdraw"));
                     case "report", "allyremove" -> completions.addAll(VanguardClan.getInstance().getStorageProvider().getCachedClanNames());
                     case "edit" -> {
                         if (isInClan(playerClan) && isLeader(player, playerClan)) {

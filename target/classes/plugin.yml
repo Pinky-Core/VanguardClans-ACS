@@ -1,5 +1,5 @@
 main: me.lewisainsworth.vanguardclans.VanguardClan
-version: 1.4.9
+version: 1.5.0
 name: VanguardClans
 author: LewisAinsworth
 api-version: "1.20"
@@ -75,6 +75,10 @@ permissions:
 
   vanguardclans.user.invite:
     description: Permiso para invitar jugadores a un clan.
+    default: false
+
+  vanguardclans.user.economy:
+    description: Permiso para depositar o retirar dinero del banco del clan.
     default: false
 
   vanguardclans.user.accept:

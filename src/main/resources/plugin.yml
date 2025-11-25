@@ -77,6 +77,10 @@ permissions:
     description: Permiso para invitar jugadores a un clan.
     default: false
 
+  vanguardclans.user.economy:
+    description: Permiso para depositar o retirar dinero del banco del clan.
+    default: false
+
   vanguardclans.user.accept:
     description: Permiso para aceptar invitaciones a clanes.
     default: false
