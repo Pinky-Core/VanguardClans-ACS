@@ -14,6 +14,7 @@ user:
   usage_ff: "&c &lUSO:&f /clan ff <on|off>"
   usage_ally: "&c &lUSO:&f /clan ally <request|accept|decline|remove> <nombreClan>"
   economy_usage: "&c &lUSO:&f /clan economy <deposit|withdraw> <cantidad>"
+  economy_balance: "&aSaldo del banco del clan: &f${balance}"
   economy_invalid_amount: "&c La cantidad debe ser un numero positivo."
   economy_disabled: "&c La economia de clanes esta desactivada."
   economy_not_enough_player: "&c No tienes suficiente dinero."
