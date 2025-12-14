@@ -29,7 +29,8 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
         
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setJdbcUrl("jdbc:sqlite:" + dbPath);
-        hikariConfig.setDriverClassName("me.lewisainsworth.shaded.sqlite.JDBC");
+        // Keep the default driver package so the bundled native library loads correctly.
+        hikariConfig.setDriverClassName("org.sqlite.JDBC");
         
         hikariConfig.setMaximumPoolSize(10);
         hikariConfig.setMinimumIdle(5);

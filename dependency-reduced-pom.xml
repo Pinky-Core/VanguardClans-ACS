@@ -57,10 +57,6 @@
                   <shadedPattern>me.lewisainsworth.shaded.h2</shadedPattern>
                 </relocation>
                 <relocation>
-                  <pattern>org.sqlite</pattern>
-                  <shadedPattern>me.lewisainsworth.shaded.sqlite</shadedPattern>
-                </relocation>
-                <relocation>
                   <pattern>com.zaxxer.hikari</pattern>
                   <shadedPattern>me.lewisainsworth.shaded.hikari</shadedPattern>
                 </relocation>
