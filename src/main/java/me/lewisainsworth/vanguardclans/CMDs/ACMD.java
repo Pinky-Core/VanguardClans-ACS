@@ -100,6 +100,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
                 sender.sendMessage(MSG.color(langManager.getMessage("msg.admin_repair_start")));
                 plugin.getStorageProvider().repairClanLeadership(sender);
             }
+            case "points" -> giveClanPoints(sender, args);
             case "sqlstatus" -> {
                 try {
                     var ds = plugin.getStorageProvider().getDataSource();
@@ -194,6 +195,32 @@ public class ACMD implements CommandExecutor, TabCompleter {
         }
 
         return true;
+    }
+
+    private void giveClanPoints(CommandSender sender, String[] args) {
+        if (args.length != 3) {
+            sender.sendMessage(MSG.color(langManager.getMessage("msg.admin_points_usage")));
+            return;
+        }
+
+        String clan = args[1];
+        if (!plugin.getStorageProvider().clanExists(clan)) {
+            sender.sendMessage(MSG.color(langManager.getMessage("msg.clan_not_exist")));
+            return;
+        }
+
+        int amount;
+        try {
+            amount = Integer.parseInt(args[2]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage(MSG.color(langManager.getMessage("msg.admin_points_usage")));
+            return;
+        }
+
+        plugin.getStorageProvider().addClanPoints(clan, amount);
+        sender.sendMessage(MSG.color(langManager.getMessage("msg.admin_points_success")
+            .replace("{clan}", clan)
+            .replace("{points}", String.valueOf(amount))));
     }
 
 
@@ -698,7 +725,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 1) {
-            return Stream.of("reload", "ban", "unban", "clear", "reports", "lang", "forcejoin", "forceleave", "delete", "sqlstatus", "fix", "repair")
+            return Stream.of("reload", "ban", "unban", "clear", "reports", "lang", "forcejoin", "forceleave", "delete", "sqlstatus", "fix", "repair", "points")
                     .filter(sub -> sub.startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());
         }
@@ -741,6 +768,19 @@ public class ACMD implements CommandExecutor, TabCompleter {
             }
 
             return Collections.emptyList();
+        }
+
+        if (arg0.equals("points")) {
+            if (args.length == 2) {
+                return getClanNames().stream()
+                        .filter(c -> c.toLowerCase().startsWith(args[1].toLowerCase()))
+                        .collect(Collectors.toList());
+            }
+            if (args.length == 3) {
+                return Stream.of("10", "50", "100")
+                        .filter(a -> a.startsWith(args[2].toLowerCase()))
+                        .collect(Collectors.toList());
+            }
         }
 
         if ((arg0.equals("ban") || arg0.equals("unban")) && args.length == 2) {

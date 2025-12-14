@@ -338,3 +338,5 @@ lang:
   lang_not_found: "&cLanguage not found."
   menu_header: "&6&m-----------------------------"
   menu_footer: "&6&m-----------------------------"
+  admin_points_usage: "&cUsage: /clanadmin points <clan> <amount>"
+  admin_points_success: "&aAdded &f{points} &apoints to clan &f{clan}"
