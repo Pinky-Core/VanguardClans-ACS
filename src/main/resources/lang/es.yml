@@ -23,6 +23,20 @@ user:
   economy_withdraw_success: "&aRetiraste &f${amount} &adel banco del clan. Saldo: &f${balance}"
   economy_only_leader_withdraw: "&c Solo el lider del clan puede retirar dinero."
   no_clan: "&c No perteneces a ningún clan."
+  slots_disabled: "&cEl sistema de slots esta desactivado."
+  slots_static_limit: "&aLimite fijo de miembros: &f{used}/{limit}"
+  slots_status: "&aSlots usados: &f{used}/{limit}"
+  slots_points: "&aPuntos del clan: &f{points}"
+  slots_next_upgrade: "&7Proxima mejora: &f+{slots} slots &7por &f{cost} puntos."
+  slots_no_more_upgrades: "&cYa alcanzaron todas las mejoras de slots."
+  slots_no_upgrades_config: "&cNo hay mejoras de slots configuradas."
+  slots_not_enough_points: "&cNecesitas {cost} puntos. Ahora mismo tienes {points}."
+  slots_bought: "&aCompraste +{slots} slots. Nuevo limite: {limit} (Costo: {cost} puntos)."
+  slots_usage: "&cUso: /clan slots buy"
+  slots_not_leader: "&cSolo el lider puede comprar mejoras de slots."
+  slots_full: "&cEl clan esta lleno: {used}/{limit}."
+  slots_points_gained: "&aTu clan gano &f{points} &apuntos."
+  slots_unlimited: "\u221e"
 
   # HELP COMMAND
   invalid_page_help: "&c Página inválida. Usa /clan help <1-{total_pages}>"
@@ -324,3 +338,4 @@ lang:
   lang_not_found: "&cIdioma no encontrado."
   menu_header: "&6&m-----------------------------"
   menu_footer: "&6&m-----------------------------"
+

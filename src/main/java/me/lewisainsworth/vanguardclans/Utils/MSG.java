@@ -4,6 +4,7 @@ import net.md_5.bungee.api.ChatColor;
 
 
 import me.clip.placeholderapi.PlaceholderAPI;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -17,8 +18,12 @@ public class MSG {
     private static final Pattern HEX_PATTERN = Pattern.compile("&#([A-Fa-f0-9]{6})");
 
     public static String color(String msg) {
-        if (isPlaceholderAPIAvailable()) {
-            msg = PlaceholderAPI.setPlaceholders(null, msg);
+        if (canUsePlaceholderAPI()) {
+            try {
+                msg = PlaceholderAPI.setPlaceholders(null, msg);
+            } catch (Throwable ignored) {
+                // Do not fail startup if PAPI misbehaves
+            }
         }
 
         msg = translateHexColors(msg);
@@ -27,8 +32,12 @@ public class MSG {
     }
 
     public static String color(Player player, String msg) {
-        if (isPlaceholderAPIAvailable()) {
-            msg = PlaceholderAPI.setPlaceholders(player, msg);
+        if (canUsePlaceholderAPI()) {
+            try {
+                msg = PlaceholderAPI.setPlaceholders(player, msg);
+            } catch (Throwable ignored) {
+                // Avoid crashing if PAPI fails
+            }
         }
 
         msg = translateHexColors(msg);
@@ -42,11 +51,14 @@ public class MSG {
                 .collect(Collectors.toList());
     }
 
-    private static boolean isPlaceholderAPIAvailable() {
+    private static boolean canUsePlaceholderAPI() {
+        if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return false;
+        }
         try {
             Class.forName("me.clip.placeholderapi.PlaceholderAPI");
             return true;
-        } catch (ClassNotFoundException e) {
+        } catch (Throwable e) {
             return false;
         }
     }

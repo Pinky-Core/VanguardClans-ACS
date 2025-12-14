@@ -78,7 +78,9 @@ public class MariaDBManager extends AbstractStorageProvider {
                     founder VARCHAR(36),
                     leader VARCHAR(36),
                     money DOUBLE,
-                    privacy VARCHAR(12)
+                    privacy VARCHAR(12),
+                    points INT DEFAULT 0,
+                    slot_upgrades INT DEFAULT 0
                 )
             """);
 
@@ -188,6 +190,18 @@ public class MariaDBManager extends AbstractStorageProvider {
             if (!rs.next()) {
                 stmt.executeUpdate("ALTER TABLE clans ADD COLUMN name_colored TEXT");
                 Bukkit.getLogger().info("Columna 'name_colored' agregada a la tabla 'clans'.");
+            }
+
+            ResultSet pointsColumn = con.getMetaData().getColumns(null, null, "clans", "points");
+            if (!pointsColumn.next()) {
+                stmt.executeUpdate("ALTER TABLE clans ADD COLUMN points INT DEFAULT 0");
+                Bukkit.getLogger().info("Columna 'points' agregada a la tabla 'clans'.");
+            }
+
+            ResultSet upgradesColumn = con.getMetaData().getColumns(null, null, "clans", "slot_upgrades");
+            if (!upgradesColumn.next()) {
+                stmt.executeUpdate("ALTER TABLE clans ADD COLUMN slot_upgrades INT DEFAULT 0");
+                Bukkit.getLogger().info("Columna 'slot_upgrades' agregada a la tabla 'clans'.");
             }
 
         } catch (SQLException e) {
@@ -1119,7 +1133,7 @@ public class MariaDBManager extends AbstractStorageProvider {
                         @SuppressWarnings("unchecked")
                         Map<String, Object> clanData = (Map<String, Object>) entry.getValue();
                         
-                        String sql = "INSERT INTO clans (name, name_colored, founder, leader, money, privacy) VALUES (?, ?, ?, ?, ?, ?)";
+                        String sql = "INSERT INTO clans (name, name_colored, founder, leader, money, privacy, points, slot_upgrades) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
                         try (PreparedStatement ps = con.prepareStatement(sql)) {
                             ps.setString(1, entry.getKey());
                             ps.setString(2, (String) clanData.get("name_colored"));
@@ -1127,6 +1141,8 @@ public class MariaDBManager extends AbstractStorageProvider {
                             ps.setString(4, (String) clanData.get("leader"));
                             ps.setDouble(5, ((Number) clanData.get("money")).doubleValue());
                             ps.setString(6, (String) clanData.get("privacy"));
+                            ps.setInt(7, clanData.containsKey("points") ? ((Number) clanData.get("points")).intValue() : 0);
+                            ps.setInt(8, clanData.containsKey("slot_upgrades") ? ((Number) clanData.get("slot_upgrades")).intValue() : 0);
                             ps.executeUpdate();
                         }
                     }
@@ -1166,7 +1182,7 @@ public class MariaDBManager extends AbstractStorageProvider {
         try (Connection con = getConnection()) {
             // Export clans
             Map<String, Object> clans = new HashMap<>();
-            String clanSql = "SELECT name, name_colored, founder, leader, money, privacy FROM clans";
+            String clanSql = "SELECT name, name_colored, founder, leader, money, privacy, points, slot_upgrades FROM clans";
             try (PreparedStatement ps = con.prepareStatement(clanSql);
                  ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -1176,6 +1192,8 @@ public class MariaDBManager extends AbstractStorageProvider {
                     clanData.put("leader", rs.getString("leader"));
                     clanData.put("money", rs.getDouble("money"));
                     clanData.put("privacy", rs.getString("privacy"));
+                    clanData.put("points", rs.getInt("points"));
+                    clanData.put("slot_upgrades", rs.getInt("slot_upgrades"));
                     clans.put(rs.getString("name"), clanData);
                 }
             }
@@ -1318,7 +1336,7 @@ public class MariaDBManager extends AbstractStorageProvider {
             con.setAutoCommit(false);
             try {
                 // Create the clan
-                String clanSql = "INSERT INTO clans (name, leader, founder, name_colored, money, tag) VALUES (?, ?, ?, ?, ?, ?)";
+                String clanSql = "INSERT INTO clans (name, leader, founder, name_colored, money, privacy, points, slot_upgrades) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
                 try (PreparedStatement ps = con.prepareStatement(clanSql)) {
                     ps.setString(1, clanName);
                     ps.setString(2, leader);
@@ -1326,14 +1344,16 @@ public class MariaDBManager extends AbstractStorageProvider {
                     ps.setString(4, coloredName);
                     ps.setDouble(5, money);
                     ps.setString(6, tag);
+                    ps.setInt(7, 0);
+                    ps.setInt(8, 0);
                     ps.executeUpdate();
                 }
 
                 // Add leader to clan_users
-                String userSql = "INSERT INTO clan_users (player, clan) VALUES (?, ?)";
+                String userSql = "INSERT INTO clan_users (clan, username) VALUES (?, ?)";
                 try (PreparedStatement ps = con.prepareStatement(userSql)) {
-                    ps.setString(1, leader);
-                    ps.setString(2, clanName);
+                    ps.setString(1, clanName);
+                    ps.setString(2, leader);
                     ps.executeUpdate();
                 }
 
@@ -1431,6 +1451,68 @@ public class MariaDBManager extends AbstractStorageProvider {
             e.printStackTrace();
         }
         return 0.0;
+    }
+
+    @Override
+    public int getClanPoints(String clanName) {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("SELECT points FROM clans WHERE name = ?")) {
+            ps.setString(1, clanName);
+            ResultSet rs = ps.executeQuery();
+            return rs.next() ? rs.getInt("points") : 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    @Override
+    public void setClanPoints(String clanName, int points) {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("UPDATE clans SET points = ? WHERE name = ?")) {
+            ps.setInt(1, Math.max(0, points));
+            ps.setString(2, clanName);
+            ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void addClanPoints(String clanName, int delta) {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("UPDATE clans SET points = GREATEST(0, points + ?) WHERE name = ?")) {
+            ps.setInt(1, delta);
+            ps.setString(2, clanName);
+            ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public int getClanSlotUpgrades(String clanName) {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("SELECT slot_upgrades FROM clans WHERE name = ?")) {
+            ps.setString(1, clanName);
+            ResultSet rs = ps.executeQuery();
+            return rs.next() ? rs.getInt("slot_upgrades") : 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    @Override
+    public void setClanSlotUpgrades(String clanName, int upgrades) {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("UPDATE clans SET slot_upgrades = ? WHERE name = ?")) {
+            ps.setInt(1, Math.max(0, upgrades));
+            ps.setString(2, clanName);
+            ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

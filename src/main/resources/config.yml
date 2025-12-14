@@ -96,6 +96,20 @@ blocked-worlds:
 
 max-clans: 0 # 0 = ILIMITADO
 
+clan-slots:
+  enabled: true
+  use-points: true
+  # Si use-points es false, se usará este límite fijo (0 = ilimitado)
+  static-limit: 0
+  # Slots base cuando el sistema de puntos está activo
+  base-slots: 5
+  points-per-kill: 1
+  upgrades:
+    - cost: 25
+      slots: 2
+    - cost: 50
+      slots: 3
+
 
 clan-name:
   # Limite de caracteres visibles (los colores no cuentan). 0 = sin limite.

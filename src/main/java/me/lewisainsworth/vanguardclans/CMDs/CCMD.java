@@ -318,6 +318,14 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                 }
                 handleClanEconomy(player, playerClan, args);
                 break;
+            
+            case "slots":
+                if (!player.hasPermission("vanguardclans.user.slots")) {
+                    sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_permission")));
+                    return true;
+                }
+                handleSlotsCommand(player, playerClan, args);
+                break;
 
             default:
                 if (showMainHelpPage) {
@@ -776,6 +784,91 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             .replace("{balance}", formatMoney(storage.getClanMoney(playerClan)))));
     }
 
+    private void handleSlotsCommand(Player player, String playerClan, String[] args) {
+        if (playerClan == null || playerClan.isEmpty()) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_clan")));
+            return;
+        }
+
+        FileConfiguration config = plugin.getFH().getConfig();
+        boolean slotsEnabled = config.getBoolean("clan-slots.enabled", false);
+        boolean usePoints = config.getBoolean("clan-slots.use-points", true);
+        int memberCount = plugin.getStorageProvider().getClanMemberCount(playerClan);
+
+        if (!slotsEnabled) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_disabled")));
+            return;
+        }
+
+        if (!usePoints) {
+            int limit = config.getInt("clan-slots.static-limit", 0);
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_static_limit")
+                .replace("{used}", String.valueOf(memberCount))
+                .replace("{limit}", formatSlotLimit(limit <= 0 ? Integer.MAX_VALUE : limit))));
+            return;
+        }
+
+        List<SlotUpgrade> upgrades = getConfiguredUpgrades();
+        if (upgrades.isEmpty()) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_no_upgrades_config")));
+            return;
+        }
+
+        StorageProvider storage = plugin.getStorageProvider();
+        int points = storage.getClanPoints(playerClan);
+        int purchased = storage.getClanSlotUpgrades(playerClan);
+        int maxSlots = calculateMaxSlots(playerClan);
+        SlotUpgrade nextUpgrade = purchased < upgrades.size() ? upgrades.get(purchased) : null;
+
+        if (args.length == 1) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_status")
+                .replace("{used}", String.valueOf(memberCount))
+                .replace("{limit}", formatSlotLimit(maxSlots))));
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_points")
+                .replace("{points}", String.valueOf(points))));
+
+            if (nextUpgrade != null) {
+                player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_next_upgrade")
+                    .replace("{cost}", String.valueOf(nextUpgrade.cost()))
+                    .replace("{slots}", String.valueOf(nextUpgrade.slots()))));
+            } else {
+                player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_no_more_upgrades")));
+            }
+            return;
+        }
+
+        if (!args[1].equalsIgnoreCase("buy")) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_usage")));
+            return;
+        }
+
+        if (!isLeader(player, playerClan)) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_not_leader")));
+            return;
+        }
+
+        if (nextUpgrade == null) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_no_more_upgrades")));
+            return;
+        }
+
+        if (points < nextUpgrade.cost()) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_not_enough_points")
+                .replace("{cost}", String.valueOf(nextUpgrade.cost()))
+                .replace("{points}", String.valueOf(points))));
+            return;
+        }
+
+        storage.setClanPoints(playerClan, points - nextUpgrade.cost());
+        storage.setClanSlotUpgrades(playerClan, purchased + 1);
+        int newLimit = calculateMaxSlots(playerClan);
+
+        player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_bought")
+            .replace("{slots}", String.valueOf(nextUpgrade.slots()))
+            .replace("{limit}", formatSlotLimit(newLimit))
+            .replace("{cost}", String.valueOf(nextUpgrade.cost()))));
+    }
+
     private String formatMoney(double amount) {
         DecimalFormat formatter = new DecimalFormat("#,##0.##");
         return formatter.format(amount);
@@ -801,6 +894,15 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
         // Verificar si el jugador es líder del clan
         if (!isLeader(inviter, inviterClan)) {
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.invite_only_leader")));
+            return;
+        }
+
+        if (!hasAvailableSlot(inviterClan)) {
+            int used = plugin.getStorageProvider().getClanMemberCount(inviterClan);
+            int limit = calculateMaxSlots(inviterClan);
+            sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_full")
+                .replace("{used}", String.valueOf(used))
+                .replace("{limit}", formatSlotLimit(limit))));
             return;
         }
 
@@ -946,6 +1048,15 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                     sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.clan_private")));
                     return;
                 }
+            }
+
+            if (!hasAvailableSlot(clanToJoin)) {
+                int used = plugin.getStorageProvider().getClanMemberCount(clanToJoin);
+                int limit = calculateMaxSlots(clanToJoin);
+                sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_full")
+                    .replace("{used}", String.valueOf(used))
+                    .replace("{limit}", formatSlotLimit(limit))));
+                return;
             }
 
             // Add player to clan
@@ -1679,7 +1790,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             case 1 -> completions.addAll(List.of(
                     "create", "disband", "report", "list", "join",
                     "kick", "invite", "chat", "leave", "stats", "resign", "edit",
-                    "ff", "ally", "help", "home", "sethome", "delhome", "economy"
+                    "ff", "ally", "help", "home", "sethome", "delhome", "economy", "slots"
             ));
 
             case 2 -> {
@@ -1704,6 +1815,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                     case "ally" -> {
                         completions.addAll(List.of("request", "accept", "decline", "remove", "ff"));
                     }
+                    case "slots" -> completions.add("buy");
                 }
             }
 
@@ -1756,6 +1868,63 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
         
         return false;
     }
+
+    private boolean hasAvailableSlot(String clanName) {
+        int maxSlots = calculateMaxSlots(clanName);
+        if (maxSlots == Integer.MAX_VALUE) {
+            return true;
+        }
+        if (maxSlots <= 0) {
+            return false;
+        }
+        int current = plugin.getStorageProvider().getClanMemberCount(clanName);
+        return current < maxSlots;
+    }
+
+    private int calculateMaxSlots(String clanName) {
+        FileConfiguration config = plugin.getFH().getConfig();
+        if (!config.getBoolean("clan-slots.enabled", false)) {
+            return Integer.MAX_VALUE;
+        }
+
+        if (!config.getBoolean("clan-slots.use-points", true)) {
+            int staticLimit = config.getInt("clan-slots.static-limit", 0);
+            return staticLimit <= 0 ? Integer.MAX_VALUE : staticLimit;
+        }
+
+        int baseSlots = config.getInt("clan-slots.base-slots", 0);
+        int upgradesPurchased = clanName == null ? 0 : plugin.getStorageProvider().getClanSlotUpgrades(clanName);
+        List<SlotUpgrade> upgrades = getConfiguredUpgrades();
+
+        int extraSlots = 0;
+        for (int i = 0; i < upgradesPurchased && i < upgrades.size(); i++) {
+            extraSlots += upgrades.get(i).slots();
+        }
+        return baseSlots + extraSlots;
+    }
+
+    private List<SlotUpgrade> getConfiguredUpgrades() {
+        List<SlotUpgrade> upgrades = new ArrayList<>();
+        for (Map<?, ?> entry : plugin.getFH().getConfig().getMapList("clan-slots.upgrades")) {
+            Object costObj = entry.get("cost");
+            Object slotsObj = entry.get("slots");
+            int cost = costObj instanceof Number ? ((Number) costObj).intValue() : 0;
+            int slots = slotsObj instanceof Number ? ((Number) slotsObj).intValue() : 0;
+            if (cost > 0 && slots > 0) {
+                upgrades.add(new SlotUpgrade(cost, slots));
+            }
+        }
+        return upgrades;
+    }
+
+    private String formatSlotLimit(int limit) {
+        if (limit == Integer.MAX_VALUE) {
+            return langManager.getMessage("user.slots_unlimited");
+        }
+        return String.valueOf(limit);
+    }
+
+    private record SlotUpgrade(int cost, int slots) {}
 
     private List<String> getClanNames() {
         return new ArrayList<>(plugin.getStorageProvider().getAllClans());

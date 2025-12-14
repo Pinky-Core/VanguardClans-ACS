@@ -81,6 +81,10 @@ permissions:
     description: Permiso para depositar o retirar dinero del banco del clan.
     default: false
 
+  vanguardclans.user.slots:
+    description: Permiso para ver y mejorar los slots del clan.
+    default: false
+
   vanguardclans.user.accept:
     description: Permiso para aceptar invitaciones a clanes.
     default: false

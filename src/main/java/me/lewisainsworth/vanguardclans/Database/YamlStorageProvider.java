@@ -98,6 +98,63 @@ public class YamlStorageProvider extends AbstractStorageProvider {
             lock.writeLock().unlock();
         }
     }
+
+    @Override
+    public int getClanPoints(String clanName) {
+        lock.readLock().lock();
+        try {
+            ConfigurationSection clanSection = data.getConfigurationSection("clans." + clanName);
+            return clanSection != null ? clanSection.getInt("points", 0) : 0;
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public void setClanPoints(String clanName, int points) {
+        lock.writeLock().lock();
+        try {
+            data.set("clans." + clanName + ".points", Math.max(0, points));
+            saveData();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public void addClanPoints(String clanName, int delta) {
+        lock.writeLock().lock();
+        try {
+            ConfigurationSection clanSection = data.getConfigurationSection("clans." + clanName);
+            int current = clanSection != null ? clanSection.getInt("points", 0) : 0;
+            data.set("clans." + clanName + ".points", Math.max(0, current + delta));
+            saveData();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public int getClanSlotUpgrades(String clanName) {
+        lock.readLock().lock();
+        try {
+            ConfigurationSection clanSection = data.getConfigurationSection("clans." + clanName);
+            return clanSection != null ? clanSection.getInt("slot_upgrades", 0) : 0;
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public void setClanSlotUpgrades(String clanName, int upgrades) {
+        lock.writeLock().lock();
+        try {
+            data.set("clans." + clanName + ".slot_upgrades", Math.max(0, upgrades));
+            saveData();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
     
     @Override
     public String getClanPrivacy(String clanName) {
@@ -143,6 +200,8 @@ public class YamlStorageProvider extends AbstractStorageProvider {
             data.set(path + ".leader", leader);
             data.set(path + ".money", money);
             data.set(path + ".privacy", privacy);
+            data.set(path + ".points", 0);
+            data.set(path + ".slot_upgrades", 0);
             data.set(path + ".created", System.currentTimeMillis());
             
             // Add leader as first member
@@ -330,8 +389,12 @@ public class YamlStorageProvider extends AbstractStorageProvider {
                 String leader = source.getClanLeader(clanName);
                 double money = source.getClanMoney(clanName);
                 String privacy = source.getClanPrivacy(clanName);
+                int points = source.getClanPoints(clanName);
+                int upgrades = source.getClanSlotUpgrades(clanName);
                 
                 createClan(clanName, coloredName, founder, leader, money, privacy);
+                setClanPoints(clanName, points);
+                setClanSlotUpgrades(clanName, upgrades);
                 
                 // Migrate members
                 List<String> members = source.getClanMembers(clanName);
@@ -457,18 +520,9 @@ public class YamlStorageProvider extends AbstractStorageProvider {
     protected int getClanMemberCountImpl(String clanName) throws Exception {
         lock.readLock().lock();
         try {
-            ConfigurationSection membersSection = data.getConfigurationSection("clan_users");
-            if (membersSection != null) {
-                int count = 0;
-                for (String username : membersSection.getKeys(false)) {
-                    String clan = membersSection.getString(username);
-                    if (clanName.equalsIgnoreCase(clan)) {
-                        count++;
-                    }
-                }
-                return count;
-            }
-            return 0;
+            ConfigurationSection clanMembers = data.getConfigurationSection("clan_users." + clanName);
+            if (clanMembers == null) return 0;
+            return clanMembers.getKeys(false).size();
         } finally {
             lock.readLock().unlock();
         }

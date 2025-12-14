@@ -60,6 +60,31 @@ public interface StorageProvider {
     void setClanMoney(String clanName, double amount);
     
     /**
+     * Get clan points (used for slot upgrades)
+     */
+    int getClanPoints(String clanName);
+
+    /**
+     * Set clan points
+     */
+    void setClanPoints(String clanName, int points);
+
+    /**
+     * Add/subtract clan points
+     */
+    void addClanPoints(String clanName, int delta);
+
+    /**
+     * Get how many slot upgrades a clan has purchased
+     */
+    int getClanSlotUpgrades(String clanName);
+
+    /**
+     * Set how many slot upgrades a clan has purchased
+     */
+    void setClanSlotUpgrades(String clanName, int upgrades);
+    
+    /**
      * Get clan privacy setting
      */
     String getClanPrivacy(String clanName);

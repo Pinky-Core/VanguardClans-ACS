@@ -5,6 +5,7 @@ me\lewisainsworth\vanguardclans\Utils\Updater.class
 me\lewisainsworth\vanguardclans\Utils\Metrics$AdvancedPie.class
 me\lewisainsworth\vanguardclans\Database\H2StorageProvider.class
 me\lewisainsworth\vanguardclans\Utils\Metrics$SimplePie.class
+me\lewisainsworth\vanguardclans\CMDs\CCMD$SlotUpgrade.class
 me\lewisainsworth\vanguardclans\Database\SQLiteStorageProvider.class
 me\lewisainsworth\vanguardclans\Database\YamlStorageProvider.class
 me\lewisainsworth\vanguardclans\Utils\Metrics$SimpleBarChart.class

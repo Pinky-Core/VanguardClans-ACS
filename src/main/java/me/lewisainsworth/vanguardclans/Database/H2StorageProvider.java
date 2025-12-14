@@ -58,7 +58,9 @@ public class H2StorageProvider extends AbstractStorageProvider {
                     founder VARCHAR(36),
                     leader VARCHAR(36),
                     money DOUBLE,
-                    privacy VARCHAR(12)
+                    privacy VARCHAR(12),
+                    points INT DEFAULT 0,
+                    slot_upgrades INT DEFAULT 0
                 )
             """);
 
@@ -135,6 +137,9 @@ public class H2StorageProvider extends AbstractStorageProvider {
                     pitch FLOAT
                 )
             """);
+
+            ensureColumn(con, "clans", "points", "INT DEFAULT 0");
+            ensureColumn(con, "clans", "slot_upgrades", "INT DEFAULT 0");
         }
     }
     
@@ -196,6 +201,68 @@ public class H2StorageProvider extends AbstractStorageProvider {
             plugin.getLogger().severe("Error setting clan money for " + clanName + ": " + e.getMessage());
         }
     }
+
+    @Override
+    public int getClanPoints(String clanName) {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("SELECT points FROM clans WHERE name = ?")) {
+            ps.setString(1, clanName);
+            ResultSet rs = ps.executeQuery();
+            return rs.next() ? rs.getInt("points") : 0;
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Error getting clan points for " + clanName + ": " + e.getMessage());
+            return 0;
+        }
+    }
+
+    @Override
+    public void setClanPoints(String clanName, int points) {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("UPDATE clans SET points = ? WHERE name = ?")) {
+            ps.setInt(1, Math.max(0, points));
+            ps.setString(2, clanName);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Error setting clan points for " + clanName + ": " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void addClanPoints(String clanName, int delta) {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("UPDATE clans SET points = GREATEST(0, points + ?) WHERE name = ?")) {
+            ps.setInt(1, delta);
+            ps.setString(2, clanName);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Error updating clan points for " + clanName + ": " + e.getMessage());
+        }
+    }
+
+    @Override
+    public int getClanSlotUpgrades(String clanName) {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("SELECT slot_upgrades FROM clans WHERE name = ?")) {
+            ps.setString(1, clanName);
+            ResultSet rs = ps.executeQuery();
+            return rs.next() ? rs.getInt("slot_upgrades") : 0;
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Error getting clan slot upgrades for " + clanName + ": " + e.getMessage());
+            return 0;
+        }
+    }
+
+    @Override
+    public void setClanSlotUpgrades(String clanName, int upgrades) {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("UPDATE clans SET slot_upgrades = ? WHERE name = ?")) {
+            ps.setInt(1, Math.max(0, upgrades));
+            ps.setString(2, clanName);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Error setting clan slot upgrades for " + clanName + ": " + e.getMessage());
+        }
+    }
     
     @Override
     public String getClanPrivacy(String clanName) {
@@ -242,13 +309,15 @@ public class H2StorageProvider extends AbstractStorageProvider {
             try {
                 // Insert clan
                 try (PreparedStatement ps = con.prepareStatement(
-                    "INSERT INTO clans (name, name_colored, founder, leader, money, privacy) VALUES (?, ?, ?, ?, ?, ?)")) {
+                    "INSERT INTO clans (name, name_colored, founder, leader, money, privacy, points, slot_upgrades) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
                     ps.setString(1, clanName);
                     ps.setString(2, coloredName);
                     ps.setString(3, founder);
                     ps.setString(4, leader);
                     ps.setDouble(5, money);
                     ps.setString(6, privacy);
+                    ps.setInt(7, 0);
+                    ps.setInt(8, 0);
                     ps.executeUpdate();
                 }
                 
@@ -481,8 +550,12 @@ public class H2StorageProvider extends AbstractStorageProvider {
                     String leader = source.getClanLeader(clanName);
                     double money = source.getClanMoney(clanName);
                     String privacy = source.getClanPrivacy(clanName);
+                    int points = source.getClanPoints(clanName);
+                    int upgrades = source.getClanSlotUpgrades(clanName);
                     
                     createClan(clanName, coloredName, founder, leader, money, privacy);
+                    setClanPoints(clanName, points);
+                    setClanSlotUpgrades(clanName, upgrades);
                     
                     // Migrate members
                     List<String> members = source.getClanMembers(clanName);
@@ -542,6 +615,8 @@ public class H2StorageProvider extends AbstractStorageProvider {
                     clan.put("leader", rs.getString("leader"));
                     clan.put("money", rs.getDouble("money"));
                     clan.put("privacy", rs.getString("privacy"));
+                    clan.put("points", rs.getInt("points"));
+                    clan.put("slot_upgrades", rs.getInt("slot_upgrades"));
                     clans.put(rs.getString("name"), clan);
                 }
             }
@@ -596,13 +671,15 @@ public class H2StorageProvider extends AbstractStorageProvider {
                         @SuppressWarnings("unchecked")
                         Map<String, Object> clan = (Map<String, Object>) entry.getValue();
                         try (PreparedStatement ps = con.prepareStatement(
-                            "INSERT INTO clans (name, name_colored, founder, leader, money, privacy) VALUES (?, ?, ?, ?, ?, ?)")) {
+                            "INSERT INTO clans (name, name_colored, founder, leader, money, privacy, points, slot_upgrades) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
                             ps.setString(1, (String) clan.get("name"));
                             ps.setString(2, (String) clan.get("name_colored"));
                             ps.setString(3, (String) clan.get("founder"));
                             ps.setString(4, (String) clan.get("leader"));
                             ps.setDouble(5, (Double) clan.get("money"));
                             ps.setString(6, (String) clan.get("privacy"));
+                            ps.setInt(7, clan.containsKey("points") ? ((Number) clan.get("points")).intValue() : 0);
+                            ps.setInt(8, clan.containsKey("slot_upgrades") ? ((Number) clan.get("slot_upgrades")).intValue() : 0);
                             ps.executeUpdate();
                         }
                     }
@@ -1089,6 +1166,17 @@ public class H2StorageProvider extends AbstractStorageProvider {
                 throw e;
             } finally {
                 con.setAutoCommit(true);
+            }
+        }
+    }
+
+    private void ensureColumn(Connection con, String table, String column, String definition) throws SQLException {
+        DatabaseMetaData meta = con.getMetaData();
+        try (ResultSet rs = meta.getColumns(null, null, table, column)) {
+            if (!rs.next()) {
+                try (Statement alter = con.createStatement()) {
+                    alter.executeUpdate("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition);
+                }
             }
         }
     }
