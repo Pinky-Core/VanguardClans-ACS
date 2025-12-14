@@ -139,6 +139,14 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
                 )
             """);
 
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS player_stats (
+                    username TEXT PRIMARY KEY,
+                    kills INTEGER DEFAULT 0,
+                    deaths INTEGER DEFAULT 0
+                )
+            """);
+
             ensureColumn(con, "clans", "points", "INTEGER DEFAULT 0");
             ensureColumn(con, "clans", "slot_upgrades", "INTEGER DEFAULT 0");
         }

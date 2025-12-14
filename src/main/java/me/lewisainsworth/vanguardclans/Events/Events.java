@@ -8,6 +8,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.Location;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
@@ -77,6 +78,10 @@ public class Events implements Listener {
             player.sendMessage(MSG.color(prefix + " &eFuiste invitado a un clan:"));
             invites.forEach(c -> player.sendMessage(MSG.color("&7- &a" + c + " &7(/clan join " + c + ")")));
         }
+
+        if (plugin.getNameTagManager() != null) {
+            plugin.getNameTagManager().applyToPlayer(player);
+        }
     }
 
     @EventHandler
@@ -130,6 +135,13 @@ public class Events implements Listener {
             if (!ClanUtils.isFriendlyFireEnabledAllies(clanVictim) || !ClanUtils.isFriendlyFireEnabledAllies(clanDamager)) {
                 event.setCancelled(true);
             }
+        }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        if (plugin.getNameTagManager() != null) {
+            plugin.getNameTagManager().handleQuit(event.getPlayer());
         }
     }
 

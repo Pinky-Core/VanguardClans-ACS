@@ -20,6 +20,7 @@ import me.lewisainsworth.vanguardclans.Database.MariaDBManager;
 import me.lewisainsworth.vanguardclans.Database.StorageProvider;
 import me.lewisainsworth.vanguardclans.Database.StorageFactory;
 import me.lewisainsworth.vanguardclans.listeners.PlayerStatsListener;
+import me.lewisainsworth.vanguardclans.Utils.NameTagManager;
 
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -51,6 +52,7 @@ public class VanguardClan extends JavaPlugin {
    public LangManager langManager;
    private LangCMD langCMD;
    private CCMD ccCmd;
+   private NameTagManager nameTagManager;
 
    private static VanguardClan instance;
 
@@ -111,6 +113,8 @@ public class VanguardClan extends JavaPlugin {
          }
       }
 
+      nameTagManager = new NameTagManager(this);
+
       setupMetrics();
       registerCommands();
       registerEvents();
@@ -141,6 +145,9 @@ public class VanguardClan extends JavaPlugin {
       if (storageProvider != null) {
          storageProvider.close();
          getLogger().info("Storage provider closed successfully.");
+      }
+      if (nameTagManager != null) {
+         nameTagManager.shutdown();
       }
       
       // Enhanced shutdown message
@@ -279,6 +286,10 @@ public class VanguardClan extends JavaPlugin {
 
    public StorageProvider getStorageProvider() {
       return storageProvider;
+   }
+
+   public NameTagManager getNameTagManager() {
+      return nameTagManager;
    }
 
    // Legacy method for backward compatibility

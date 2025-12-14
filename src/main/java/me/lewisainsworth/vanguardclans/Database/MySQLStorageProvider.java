@@ -142,6 +142,14 @@ public class MySQLStorageProvider extends AbstractStorageProvider {
                 )
             """);
 
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS player_stats (
+                    username VARCHAR(36) PRIMARY KEY,
+                    kills INT DEFAULT 0,
+                    deaths INT DEFAULT 0
+                )
+            """);
+
             ensureColumn(con, "clans", "points", "INT DEFAULT 0");
             ensureColumn(con, "clans", "slot_upgrades", "INT DEFAULT 0");
         }

@@ -87,6 +87,12 @@ clan_home:
   cooldown: 30 
   teleport_delay: 5 
 
+nametag-privacy:
+  enabled: false
+  mode: "obfuscate" # obfuscate = nicks ajenos con &k, hide = ocultos, reset = normal
+  show-no-clan-names: true # si es false, los sin clan se obfuscan/ocultan igual
+  force-override: true # re-asigna el scoreboard del jugador para imponerse a otros plugins de nametag
+
 
 blocked-worlds:
   - world_nether

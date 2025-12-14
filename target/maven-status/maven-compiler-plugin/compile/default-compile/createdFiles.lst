@@ -1,6 +1,9 @@
 me\lewisainsworth\vanguardclans\Utils\Metrics$DrilldownPie.class
 me\lewisainsworth\vanguardclans\Database\StorageFactory.class
+me\lewisainsworth\vanguardclans\Utils\NameTagManager$Relation.class
+me\lewisainsworth\vanguardclans\Utils\NameTagManager.class
 me\lewisainsworth\vanguardclans\Utils\Econo.class
+me\lewisainsworth\vanguardclans\Utils\NameTagManager$Mode.class
 me\lewisainsworth\vanguardclans\Utils\Updater.class
 me\lewisainsworth\vanguardclans\Utils\Metrics$AdvancedPie.class
 me\lewisainsworth\vanguardclans\Database\H2StorageProvider.class
