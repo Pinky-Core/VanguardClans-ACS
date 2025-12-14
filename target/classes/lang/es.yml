@@ -339,3 +339,5 @@ lang:
   menu_header: "&6&m-----------------------------"
   menu_footer: "&6&m-----------------------------"
 
+  admin_points_usage: "&cUso: /clanadmin points <clan> <cantidad>"
+  admin_points_success: "&aSe han agregado &f{points} &apuntos al clan &f{clan}"
