@@ -89,6 +89,27 @@ public class H2StorageProvider extends AbstractStorageProvider {
             """);
 
             stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS banned_clans (
+                    name VARCHAR(255) PRIMARY KEY,
+                    reason TEXT
+                )
+            """);
+
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS friendlyfire_allies (
+                    clan VARCHAR(255) PRIMARY KEY,
+                    enabled BOOLEAN
+                )
+            """);
+
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS economy_players (
+                    player VARCHAR(36) PRIMARY KEY,
+                    balance DOUBLE
+                )
+            """);
+
+            stmt.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS clan_invites (
                     clan VARCHAR(255),
                     username VARCHAR(36),
@@ -1286,12 +1307,12 @@ public class H2StorageProvider extends AbstractStorageProvider {
                 }
 
                 // Update pending_alliances table
-                try (PreparedStatement ps = con.prepareStatement("UPDATE pending_alliances SET requester = ? WHERE requester = ?")) {
+                try (PreparedStatement ps = con.prepareStatement("UPDATE pending_alliances SET clan1 = ? WHERE clan1 = ?")) {
                     ps.setString(1, newName);
                     ps.setString(2, oldName);
                     ps.executeUpdate();
                 }
-                try (PreparedStatement ps = con.prepareStatement("UPDATE pending_alliances SET target = ? WHERE target = ?")) {
+                try (PreparedStatement ps = con.prepareStatement("UPDATE pending_alliances SET clan2 = ? WHERE clan2 = ?")) {
                     ps.setString(1, newName);
                     ps.setString(2, oldName);
                     ps.executeUpdate();

@@ -438,21 +438,18 @@ public class ACMD implements CommandExecutor, TabCompleter {
         try (Connection con = plugin.getStorageProvider().getConnection();
             Statement stmt = con.createStatement()) {
 
-            stmt.executeUpdate("SET FOREIGN_KEY_CHECKS = 0");
-
-            stmt.executeUpdate("TRUNCATE TABLE reports");
-            stmt.executeUpdate("TRUNCATE TABLE banned_clans");
-            stmt.executeUpdate("TRUNCATE TABLE clan_users");
-            stmt.executeUpdate("TRUNCATE TABLE alliances");
-            stmt.executeUpdate("TRUNCATE TABLE friendlyfire");
-            stmt.executeUpdate("TRUNCATE TABLE friendlyfire_allies");
-            stmt.executeUpdate("TRUNCATE TABLE clans");
-            stmt.executeUpdate("TRUNCATE TABLE economy_players");
-            stmt.executeUpdate("TRUNCATE TABLE player_clan_history");
-            stmt.executeUpdate("TRUNCATE TABLE clan_invites");
-            stmt.executeUpdate("TRUNCATE TABLE pending_alliances");
-
-            stmt.executeUpdate("SET FOREIGN_KEY_CHECKS = 1");
+            // SQLite no soporta TRUNCATE ni SET FOREIGN_KEY_CHECKS; usamos DELETE para compatibilidad
+            stmt.executeUpdate("DELETE FROM reports");
+            stmt.executeUpdate("DELETE FROM banned_clans");
+            stmt.executeUpdate("DELETE FROM clan_users");
+            stmt.executeUpdate("DELETE FROM alliances");
+            stmt.executeUpdate("DELETE FROM friendlyfire");
+            stmt.executeUpdate("DELETE FROM friendlyfire_allies");
+            stmt.executeUpdate("DELETE FROM clans");
+            stmt.executeUpdate("DELETE FROM economy_players");
+            stmt.executeUpdate("DELETE FROM player_clan_history");
+            stmt.executeUpdate("DELETE FROM clan_invites");
+            stmt.executeUpdate("DELETE FROM pending_alliances");
 
             sender.sendMessage(MSG.color(langManager.getMessage("msg.data_cleared")));
 
@@ -517,7 +514,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
             PreparedStatement deleteInvites = con.prepareStatement("DELETE FROM clan_invites WHERE clan = ?");
             PreparedStatement deleteAlliances = con.prepareStatement("DELETE FROM alliances WHERE clan1 = ? OR clan2 = ?");
             PreparedStatement deleteFF = con.prepareStatement("DELETE FROM friendlyfire WHERE clan = ?");
-            PreparedStatement deletePendingAllies = con.prepareStatement("DELETE FROM pending_alliances WHERE requester = ? OR target = ?");
+            PreparedStatement deletePendingAllies = con.prepareStatement("DELETE FROM pending_alliances WHERE clan1 = ? OR clan2 = ?");
             PreparedStatement deleteReports = con.prepareStatement("DELETE FROM reports WHERE clan = ?")) {
 
             check.setString(1, clan);

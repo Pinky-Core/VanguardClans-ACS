@@ -147,8 +147,9 @@ public class NameTagManager {
     private void refreshAll() {
         if (!enabled || manager == null) return;
 
+        Map<String, String> clanSnapshot = snapshotClans();
         for (Player viewer : Bukkit.getOnlinePlayers()) {
-            updateViewerBoard(viewer);
+            updateViewerBoard(viewer, clanSnapshot);
         }
 
         cleanupOfflineEntries();
@@ -157,14 +158,27 @@ public class NameTagManager {
     private void refreshOthersFor(Player newTarget) {
         if (!enabled || manager == null) return;
 
+        Map<String, String> clanSnapshot = snapshotClans();
         for (Player viewer : Bukkit.getOnlinePlayers()) {
             if (!viewer.equals(newTarget)) {
-                updateViewerBoard(viewer);
+                updateViewerBoard(viewer, clanSnapshot);
             }
         }
     }
 
+    private Map<String, String> snapshotClans() {
+        Map<String, String> map = new HashMap<>();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            map.put(p.getName(), plugin.getPlayerClan(p.getName()));
+        }
+        return map;
+    }
+
     private void updateViewerBoard(Player viewer) {
+        updateViewerBoard(viewer, snapshotClans());
+    }
+
+    private void updateViewerBoard(Player viewer, Map<String, String> clanSnapshot) {
         if (hasBypass(viewer)) {
             viewer.setScoreboard(manager.getMainScoreboard());
             playerBoards.remove(viewer.getUniqueId());
@@ -183,27 +197,33 @@ public class NameTagManager {
         configureTeam(noClanTeam, Relation.NO_CLAN);
 
         Set<String> assigned = new HashSet<>();
-        String viewerClan = plugin.getPlayerClan(viewer.getName());
+        String viewerClan = clanSnapshot.get(viewer.getName());
 
         for (Player target : Bukkit.getOnlinePlayers()) {
-            Relation relation = relationOf(viewer, viewerClan, target);
+            Relation relation = relationOf(viewer, viewerClan, target, clanSnapshot);
             Team team = switch (relation) {
                 case SAME -> sameTeam;
                 case ENEMY -> enemyTeam;
                 case NO_CLAN -> noClanTeam;
             };
 
-            team.addEntry(target.getName());
+            Team current = board.getEntryTeam(target.getName());
+            if (current != team) {
+                if (current != null && isPluginTeam(current.getName())) {
+                    current.removeEntry(target.getName());
+                }
+                team.addEntry(target.getName());
+            }
             assigned.add(target.getName());
         }
 
         removeUnassigned(board, assigned);
     }
 
-    private Relation relationOf(Player viewer, String viewerClan, Player target) {
+    private Relation relationOf(Player viewer, String viewerClan, Player target, Map<String, String> clanSnapshot) {
         if (viewer.equals(target)) return Relation.SAME;
 
-        String targetClan = plugin.getPlayerClan(target.getName());
+        String targetClan = clanSnapshot.get(target.getName());
         if (viewerClan != null && viewerClan.equalsIgnoreCase(targetClan)) {
             return Relation.SAME;
         }

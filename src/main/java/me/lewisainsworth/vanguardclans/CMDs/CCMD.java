@@ -1335,11 +1335,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
                 // Create clan using StorageProvider
                 try {
-                    ClanNameHandler.insertClan(plugin, rawClanName, playerName, playerName);
-                    
-                    // Use StorageProvider to create clan and add player
                     plugin.getStorageProvider().createClan(plainClanName, rawClanName, playerName, playerName, 0.0, "public");
-                    plugin.getStorageProvider().addPlayerToClan(playerName, plainClanName);
 
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         PECMD.addClanToHistory(player, plainClanName);
@@ -1595,7 +1591,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             PreparedStatement ps4 = con.prepareStatement("DELETE FROM alliances WHERE clan1=? OR clan2=?");
             PreparedStatement ps5 = con.prepareStatement("DELETE FROM friendlyfire WHERE clan=?");
             PreparedStatement ps6 = con.prepareStatement("DELETE FROM clan_invites WHERE clan=?");
-            PreparedStatement ps7 = con.prepareStatement("DELETE FROM pending_alliances WHERE requester=? OR target=?");
+            PreparedStatement ps7 = con.prepareStatement("DELETE FROM pending_alliances WHERE clan1=? OR clan2=?");
             PreparedStatement ps8 = con.prepareStatement("DELETE FROM friendlyfire_allies WHERE clan=?");
             PreparedStatement ps9 = con.prepareStatement("UPDATE player_clan_history SET current_clan = NULL WHERE current_clan = ?")) {
 

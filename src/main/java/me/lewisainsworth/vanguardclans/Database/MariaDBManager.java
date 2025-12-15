@@ -151,9 +151,9 @@ public class MariaDBManager extends AbstractStorageProvider {
 
             stmt.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS pending_alliances (
-                    requester VARCHAR(255),
-                    target VARCHAR(255),
-                    PRIMARY KEY (requester, target)
+                    clan1 VARCHAR(255),
+                    clan2 VARCHAR(255),
+                    PRIMARY KEY (clan1, clan2)
                 )
             """);
 
@@ -287,7 +287,7 @@ public class MariaDBManager extends AbstractStorageProvider {
             }
 
             // Eliminar solicitudes de alianza pendientes
-            try (PreparedStatement stmt = con.prepareStatement("DELETE FROM pending_alliances WHERE requester = ? OR target = ?")) {
+            try (PreparedStatement stmt = con.prepareStatement("DELETE FROM pending_alliances WHERE clan1 = ? OR clan2 = ?")) {
                 stmt.setString(1, clanName);
                 stmt.setString(2, clanName);
                 stmt.executeUpdate();
@@ -1660,12 +1660,12 @@ public class MariaDBManager extends AbstractStorageProvider {
                 }
 
                 // Update pending_alliances table
-                try (PreparedStatement ps = con.prepareStatement("UPDATE pending_alliances SET requester = ? WHERE requester = ?")) {
+                try (PreparedStatement ps = con.prepareStatement("UPDATE pending_alliances SET clan1 = ? WHERE clan1 = ?")) {
                     ps.setString(1, newName);
                     ps.setString(2, oldName);
                     ps.executeUpdate();
                 }
-                try (PreparedStatement ps = con.prepareStatement("UPDATE pending_alliances SET target = ? WHERE target = ?")) {
+                try (PreparedStatement ps = con.prepareStatement("UPDATE pending_alliances SET clan2 = ? WHERE clan2 = ?")) {
                     ps.setString(1, newName);
                     ps.setString(2, oldName);
                     ps.executeUpdate();

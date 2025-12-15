@@ -90,6 +90,27 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
             """);
 
             stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS banned_clans (
+                    name TEXT PRIMARY KEY,
+                    reason TEXT
+                )
+            """);
+
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS friendlyfire_allies (
+                    clan TEXT PRIMARY KEY,
+                    enabled INTEGER
+                )
+            """);
+
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS economy_players (
+                    player TEXT PRIMARY KEY,
+                    balance REAL
+                )
+            """);
+
+            stmt.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS clan_invites (
                     clan TEXT,
                     username TEXT,
@@ -1283,12 +1304,12 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
                 }
 
                 // Update pending_alliances table
-                try (PreparedStatement ps = con.prepareStatement("UPDATE pending_alliances SET requester = ? WHERE requester = ?")) {
+                try (PreparedStatement ps = con.prepareStatement("UPDATE pending_alliances SET clan1 = ? WHERE clan1 = ?")) {
                     ps.setString(1, newName);
                     ps.setString(2, oldName);
                     ps.executeUpdate();
                 }
-                try (PreparedStatement ps = con.prepareStatement("UPDATE pending_alliances SET target = ? WHERE target = ?")) {
+                try (PreparedStatement ps = con.prepareStatement("UPDATE pending_alliances SET clan2 = ? WHERE clan2 = ?")) {
                     ps.setString(1, newName);
                     ps.setString(2, oldName);
                     ps.executeUpdate();

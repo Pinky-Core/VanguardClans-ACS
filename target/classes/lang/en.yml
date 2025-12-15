@@ -252,6 +252,7 @@ msg:
 
 
   # FIX COMMAND
+  admin_fix_success: "&aFix completed."
   admin_fix_usage_1: "&eUse &b/clanadmin fix confirm &eto confirm the repair of clan names."
   admin_fix_usage_2: "&7This will remove colors from &fname_colored &7in all clans to avoid invitation and clan detection bugs."
   admin_fix_start: "&eStarting asynchronous repair of clan colors..."
