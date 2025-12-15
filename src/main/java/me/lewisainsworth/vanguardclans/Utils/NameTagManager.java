@@ -3,6 +3,7 @@ package me.lewisainsworth.vanguardclans.Utils;
 import me.lewisainsworth.vanguardclans.VanguardClan;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Scoreboard;
@@ -11,6 +12,7 @@ import org.bukkit.scoreboard.Team;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -19,11 +21,6 @@ import java.util.UUID;
  * Simple nametag privacy manager: hide or reset only. No ProtocolLib or obfuscation.
  */
 public class NameTagManager {
-
-    private enum Mode {
-        HIDE,
-        RESET
-    }
 
     private enum Relation {
         SAME,
@@ -35,10 +32,13 @@ public class NameTagManager {
     private final ScoreboardManager manager;
     private final Map<UUID, Scoreboard> playerBoards = new HashMap<>();
     private boolean enabled = false;
-    private Mode mode = Mode.HIDE;
     private boolean showNoClanNames = true;
     private boolean forceOverride = true;
     private int refreshIntervalTicks = 100;
+    private String bypassPermission = "vanguardclans.bypass.nametag";
+    private Team.OptionStatus visibilitySame = Team.OptionStatus.ALWAYS;
+    private Team.OptionStatus visibilityEnemy = Team.OptionStatus.NEVER;
+    private Team.OptionStatus visibilityNoClan = Team.OptionStatus.ALWAYS;
     private int taskId = -1;
 
     public NameTagManager(VanguardClan plugin) {
@@ -62,9 +62,19 @@ public class NameTagManager {
         this.showNoClanNames = config.getBoolean("nametag-privacy.show-no-clan-names", true);
         this.forceOverride = config.getBoolean("nametag-privacy.force-override", true);
         this.refreshIntervalTicks = Math.max(20, config.getInt("nametag-privacy.refresh-interval-ticks", 100));
+        String bypass = config.getString("nametag-privacy.bypass-permission", "vanguardclans.bypass.nametag");
+        this.bypassPermission = bypass == null ? "" : bypass.trim();
 
-        String modeValue = config.getString("nametag-privacy.mode", "hide");
-        this.mode = "reset".equalsIgnoreCase(modeValue) ? Mode.RESET : Mode.HIDE;
+        ConfigurationSection visibilitySection = config.getConfigurationSection("nametag-privacy.visibility");
+        String legacyMode = config.getString("nametag-privacy.mode", "hide");
+        Team.OptionStatus defaultEnemy = "reset".equalsIgnoreCase(legacyMode)
+            ? Team.OptionStatus.ALWAYS
+            : Team.OptionStatus.NEVER;
+
+        this.visibilitySame = parseVisibility(visibilitySection, "same-clan", Team.OptionStatus.ALWAYS);
+        this.visibilityEnemy = parseVisibility(visibilitySection, "enemy-clan", defaultEnemy);
+        Team.OptionStatus defaultNoClan = showNoClanNames ? Team.OptionStatus.ALWAYS : this.visibilityEnemy;
+        this.visibilityNoClan = parseVisibility(visibilitySection, "no-clan", defaultNoClan);
 
         if (!enabled) {
             disableAll();
@@ -99,6 +109,13 @@ public class NameTagManager {
             if (manager != null) {
                 player.setScoreboard(manager.getMainScoreboard());
             }
+            playerBoards.remove(player.getUniqueId());
+            return;
+        }
+
+        if (hasBypass(player)) {
+            player.setScoreboard(manager.getMainScoreboard());
+            playerBoards.remove(player.getUniqueId());
             return;
         }
 
@@ -148,6 +165,12 @@ public class NameTagManager {
     }
 
     private void updateViewerBoard(Player viewer) {
+        if (hasBypass(viewer)) {
+            viewer.setScoreboard(manager.getMainScoreboard());
+            playerBoards.remove(viewer.getUniqueId());
+            return;
+        }
+
         Scoreboard board = playerBoards.computeIfAbsent(viewer.getUniqueId(), id -> manager.getNewScoreboard());
         viewer.setScoreboard(board);
 
@@ -186,7 +209,7 @@ public class NameTagManager {
         }
 
         if (targetClan == null || targetClan.isEmpty()) {
-            return showNoClanNames ? Relation.NO_CLAN : Relation.ENEMY;
+            return Relation.NO_CLAN;
         }
 
         return Relation.ENEMY;
@@ -201,21 +224,40 @@ public class NameTagManager {
     }
 
     private void configureTeam(Team team, Relation relation) {
-        Team.OptionStatus visibility = Team.OptionStatus.ALWAYS;
+        Team.OptionStatus visibility = switch (relation) {
+            case SAME -> visibilitySame;
+            case ENEMY -> visibilityEnemy;
+            case NO_CLAN -> visibilityNoClan;
+        };
         String prefix = "";
         String suffix = ChatColor.RESET.toString();
-
-        if (mode == Mode.HIDE) {
-            if (relation == Relation.ENEMY) {
-                visibility = Team.OptionStatus.NEVER;
-            } else if (relation == Relation.NO_CLAN && !showNoClanNames) {
-                visibility = Team.OptionStatus.NEVER;
-            }
-        }
 
         team.setOption(Team.Option.NAME_TAG_VISIBILITY, visibility);
         team.setPrefix(prefix);
         team.setSuffix(suffix);
+    }
+
+    private boolean hasBypass(Player player) {
+        return player != null
+            && bypassPermission != null
+            && !bypassPermission.isEmpty()
+            && player.hasPermission(bypassPermission);
+    }
+
+    private Team.OptionStatus parseVisibility(ConfigurationSection section, String key, Team.OptionStatus fallback) {
+        if (section == null) return fallback;
+
+        String raw = section.getString(key);
+        if (raw == null || raw.trim().isEmpty()) {
+            return fallback;
+        }
+
+        try {
+            return Team.OptionStatus.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            plugin.getLogger().warning("Invalid nametag visibility for " + key + ": " + raw + " (using " + fallback + ")");
+            return fallback;
+        }
     }
 
     private void removeUnassigned(Scoreboard board, Set<String> assigned) {

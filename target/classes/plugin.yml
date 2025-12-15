@@ -1,7 +1,7 @@
 main: me.lewisainsworth.vanguardclans.VanguardClan
-version: 1.5.2
+version: 1.5.3
 name: VanguardClans
-author: LewisAinsworth
+author: Lewis_Ainsworth
 api-version: "1.20"
 softdepend: [Vault, PlaceholderAPI]
 
@@ -35,6 +35,10 @@ permissions:
     default: op
 
   vanguardclans.bypass.homedelay:
+    default: op
+
+  vanguardclans.bypass.nametag:
+    description: Allows seeing hidden nametags (privacy bypass)
     default: op
 
   vanguardclans.user.list:

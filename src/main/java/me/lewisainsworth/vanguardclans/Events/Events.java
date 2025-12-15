@@ -46,38 +46,47 @@ public class Events implements Listener {
 
         if (!config.getBoolean("welcome-message.enabled")) return;
 
-        String clan = plugin.getPlayerClan(player.getName());
-
-        if (clan == null) {
-            config.getStringList("welcome-message.no-clan").forEach(
-                msg -> player.sendMessage(MSG.color(msg))
-            );
+        long delaySeconds;
+        if (config.isSet("welcome-message.delay-seconds")) {
+            delaySeconds = Math.max(0L, config.getLong("welcome-message.delay-seconds", 0L));
         } else {
-            List<String> clanUsers = getClanUsers(clan);
+            long legacyTicks = config.getLong("welcome-message.delay-ticks", 0L);
+            delaySeconds = Math.max(0L, Math.round(legacyTicks / 20.0D));
+        }
 
-            // Mensajes para el jugador que se unió
-            for (String line : config.getStringList("welcome-message.self-clan")) {
-                player.sendMessage(MSG.color(player, line));
-            }
+        long delayTicks = delaySeconds * 20L;
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            String clan = plugin.getPlayerClan(player.getName());
 
-            // Mensajes para los demás miembros del clan
-            for (String u : clanUsers) {
-                if (!u.equalsIgnoreCase(player.getName())) {
-                    Player target = Bukkit.getPlayerExact(u);
-                    if (target != null && target.isOnline()) {
-                        for (String line : config.getStringList("welcome-message.to-clan")) {
-                            target.sendMessage(MSG.color(player, line));
+            if (clan == null) {
+                config.getStringList("welcome-message.no-clan").forEach(
+                    msg -> player.sendMessage(MSG.color(msg))
+                );
+            } else {
+                List<String> clanUsers = getClanUsers(clan);
+
+                for (String line : config.getStringList("welcome-message.self-clan")) {
+                    player.sendMessage(MSG.color(player, line));
+                }
+
+                for (String u : clanUsers) {
+                    if (!u.equalsIgnoreCase(player.getName())) {
+                        Player target = Bukkit.getPlayerExact(u);
+                        if (target != null && target.isOnline()) {
+                            for (String line : config.getStringList("welcome-message.to-clan")) {
+                                target.sendMessage(MSG.color(player, line));
+                            }
                         }
                     }
                 }
             }
-        }
 
-        List<String> invites = getInvites(player.getName());
-        if (!invites.isEmpty()) {
-            player.sendMessage(MSG.color(prefix + " &eFuiste invitado a un clan:"));
-            invites.forEach(c -> player.sendMessage(MSG.color("&7- &a" + c + " &7(/clan join " + c + ")")));
-        }
+            List<String> invites = getInvites(player.getName());
+            if (!invites.isEmpty()) {
+                player.sendMessage(MSG.color(prefix + " &eFuiste invitado a un clan:"));
+                invites.forEach(c -> player.sendMessage(MSG.color("&7- &a" + c + " &7(/clan join " + c + ")")));
+            }
+        }, Math.max(0L, delayTicks));
 
         if (plugin.getNameTagManager() != null) {
             plugin.getNameTagManager().applyToPlayer(player);

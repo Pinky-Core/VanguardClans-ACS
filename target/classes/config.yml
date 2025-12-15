@@ -64,6 +64,7 @@ storage:
 
 welcome-message:
   enabled: true
+  delay-seconds: 1 # delay antes de enviar los mensajes de bienvenida (segundos)
 
   no-clan:
     - ""
@@ -90,8 +91,12 @@ clan_home:
 
 nametag-privacy:
   enabled: false
-  mode: "hide" # hide = ocultos, reset = normal
-  show-no-clan-names: true # si es false, los sin clan se obfuscan/ocultan igual
+  bypass-permission: "vanguardclans.bypass.nametag" # jugadores con este permiso ven todos los nametags
+  show-no-clan-names: true # valor por defecto para jugadores sin clan si no configuras visibility.no-clan
+  visibility:
+    same-clan: "always"        # always / hideforotherteams / hideforownteam / never
+    enemy-clan: "never"        # oculta los clanes enemigos
+    no-clan: "always"          # muestra a los que no tienen clan
   force-override: true # re-asigna el scoreboard del jugador para imponerse a otros plugins de nametag
   refresh-interval-ticks: 20 # cada cuantos ticks se re-aplica (>=20). Bajalo si otro plugin pisa el scoreboard.
 
