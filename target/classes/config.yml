@@ -90,7 +90,7 @@ clan_home:
 
 nametag-privacy:
   enabled: false
-  mode: "obfuscate" # obfuscate = nicks corruptos (&k), hide = ocultos, reset = normal
+  mode: "hide" # hide = ocultos, reset = normal
   show-no-clan-names: true # si es false, los sin clan se obfuscan/ocultan igual
   force-override: true # re-asigna el scoreboard del jugador para imponerse a otros plugins de nametag
   refresh-interval-ticks: 20 # cada cuantos ticks se re-aplica (>=20). Bajalo si otro plugin pisa el scoreboard.

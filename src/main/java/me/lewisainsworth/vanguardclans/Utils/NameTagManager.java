@@ -5,29 +5,24 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.ProtocolManager;
-import com.comphenix.protocol.events.PacketContainer;
-import com.comphenix.protocol.wrappers.WrappedChatComponent;
-import com.comphenix.protocol.wrappers.WrappedDataValue;
-
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
- * Handles nametag privacy per player so clanmates see real names and others see obfuscated names.
+ * Simple nametag privacy manager: hide or reset only. No ProtocolLib or obfuscation.
  */
 public class NameTagManager {
 
     private enum Mode {
-        OBFUSCATE, // use &k style for other clans
-        HIDE,      // hide other clan nametags
-        RESET      // show everything normally
+        HIDE,
+        RESET
     }
 
     private enum Relation {
@@ -40,15 +35,11 @@ public class NameTagManager {
     private final ScoreboardManager manager;
     private final Map<UUID, Scoreboard> playerBoards = new HashMap<>();
     private boolean enabled = false;
-    private Mode mode = Mode.OBFUSCATE;
+    private Mode mode = Mode.HIDE;
     private boolean showNoClanNames = true;
     private boolean forceOverride = true;
-    private String enemyPlaceholder = ChatColor.MAGIC + "ENEMY" + ChatColor.RESET;
-    private String noClanPlaceholder = ChatColor.MAGIC + "PLAYER" + ChatColor.RESET;
     private int refreshIntervalTicks = 100;
     private int taskId = -1;
-    private ProtocolManager protocolManager;
-    private boolean protoAvailable = false;
 
     public NameTagManager(VanguardClan plugin) {
         this.plugin = plugin;
@@ -59,7 +50,6 @@ public class NameTagManager {
             return;
         }
 
-        setupProtocolLib();
         reload();
         startAutoRefresh();
     }
@@ -73,14 +63,8 @@ public class NameTagManager {
         this.forceOverride = config.getBoolean("nametag-privacy.force-override", true);
         this.refreshIntervalTicks = Math.max(20, config.getInt("nametag-privacy.refresh-interval-ticks", 100));
 
-        String modeValue = config.getString("nametag-privacy.mode", "obfuscate");
-        if ("hide".equalsIgnoreCase(modeValue)) {
-            this.mode = Mode.HIDE;
-        } else if ("reset".equalsIgnoreCase(modeValue)) {
-            this.mode = Mode.RESET;
-        } else {
-            this.mode = Mode.OBFUSCATE;
-        }
+        String modeValue = config.getString("nametag-privacy.mode", "hide");
+        this.mode = "reset".equalsIgnoreCase(modeValue) ? Mode.RESET : Mode.HIDE;
 
         if (!enabled) {
             disableAll();
@@ -132,7 +116,6 @@ public class NameTagManager {
 
     private void startAutoRefresh() {
         if (manager == null) return;
-
         taskId = Bukkit.getScheduler().runTaskTimer(plugin, this::refreshAll, 20L, refreshIntervalTicks).getTaskId();
     }
 
@@ -189,17 +172,13 @@ public class NameTagManager {
 
             team.addEntry(target.getName());
             assigned.add(target.getName());
-
-            applyPacketOverride(viewer, target, relation);
         }
 
         removeUnassigned(board, assigned);
     }
 
     private Relation relationOf(Player viewer, String viewerClan, Player target) {
-        if (viewer.equals(target)) {
-            return Relation.SAME;
-        }
+        if (viewer.equals(target)) return Relation.SAME;
 
         String targetClan = plugin.getPlayerClan(target.getName());
         if (viewerClan != null && viewerClan.equalsIgnoreCase(targetClan)) {
@@ -222,35 +201,21 @@ public class NameTagManager {
     }
 
     private void configureTeam(Team team, Relation relation) {
-        boolean usePackets = protoAvailable && mode == Mode.OBFUSCATE;
         Team.OptionStatus visibility = Team.OptionStatus.ALWAYS;
         String prefix = "";
         String suffix = ChatColor.RESET.toString();
 
-        if (relation == Relation.ENEMY) {
-            if (mode == Mode.HIDE) {
+        if (mode == Mode.HIDE) {
+            if (relation == Relation.ENEMY) {
                 visibility = Team.OptionStatus.NEVER;
-            } else if (mode == Mode.OBFUSCATE) {
-                visibility = Team.OptionStatus.ALWAYS;
-                if (!usePackets) {
-                    prefix = ChatColor.MAGIC + "~~";
-                }
-            }
-        } else if (relation == Relation.NO_CLAN && !showNoClanNames) {
-            if (mode == Mode.HIDE) {
+            } else if (relation == Relation.NO_CLAN && !showNoClanNames) {
                 visibility = Team.OptionStatus.NEVER;
-            } else if (mode == Mode.OBFUSCATE) {
-                visibility = Team.OptionStatus.ALWAYS;
-                if (!usePackets) {
-                    prefix = ChatColor.MAGIC + "~~";
-                }
             }
         }
 
         team.setOption(Team.Option.NAME_TAG_VISIBILITY, visibility);
         team.setPrefix(prefix);
         team.setSuffix(suffix);
-        // Avoid setting team color to prevent stripping obfuscation codes.
     }
 
     private void removeUnassigned(Scoreboard board, Set<String> assigned) {
@@ -299,82 +264,5 @@ public class NameTagManager {
 
     private boolean isPluginTeam(String name) {
         return name != null && name.startsWith("vc_");
-    }
-
-    private String getReplacementName(Relation relation, String realName) {
-        String base = relation == Relation.ENEMY ? enemyPlaceholder : noClanPlaceholder;
-        if (base == null || base.isEmpty()) {
-            base = ChatColor.MAGIC + "####" + ChatColor.RESET;
-        }
-        return base.replace("{name}", realName);
-    }
-
-    private void setupProtocolLib() {
-        Plugin proto = Bukkit.getPluginManager().getPlugin("ProtocolLib");
-        if (proto != null && proto.isEnabled()) {
-            protocolManager = ProtocolLibrary.getProtocolManager();
-            protoAvailable = protocolManager != null;
-            if (protoAvailable) {
-                plugin.getLogger().info("[NameTag] ProtocolLib detected, enabling packet-level obfuscation.");
-            }
-        } else {
-            protoAvailable = false;
-            plugin.getLogger().warning("[NameTag] ProtocolLib not found; full nickname obfuscation won't be available.");
-        }
-    }
-
-    private void applyPacketOverride(Player viewer, Player target, Relation relation) {
-        if (!protoAvailable || protocolManager == null) return;
-        if (relation == Relation.SAME) {
-            sendClearCustomName(viewer, target);
-            return;
-        }
-
-        boolean shouldObfuscate = (relation == Relation.ENEMY) || (relation == Relation.NO_CLAN && !showNoClanNames);
-        if (!shouldObfuscate || mode != Mode.OBFUSCATE) {
-            sendClearCustomName(viewer, target);
-            return;
-        }
-
-        String custom = getReplacementName(relation, target.getName());
-        sendCustomName(viewer, target, custom, true);
-    }
-
-    private void sendCustomName(Player viewer, Player target, String name, boolean visible) {
-        try {
-            PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_METADATA);
-            packet.getIntegers().write(0, target.getEntityId());
-
-            var serializerText = com.comphenix.protocol.wrappers.WrappedDataWatcher.Registry.getChatComponentSerializer(true);
-            var serializerBool = com.comphenix.protocol.wrappers.WrappedDataWatcher.Registry.get(Boolean.class);
-
-            List<WrappedDataValue> values = new ArrayList<>();
-            values.add(new WrappedDataValue(2, serializerText, Optional.of(WrappedChatComponent.fromChatMessage(name)[0].getHandle())));
-            values.add(new WrappedDataValue(3, serializerBool, visible));
-
-            packet.getDataValueCollectionModifier().write(0, values);
-            protocolManager.sendServerPacket(viewer, packet);
-        } catch (Exception e) {
-            plugin.getLogger().warning("No se pudo enviar nombre ofuscado: " + e.getMessage());
-        }
-    }
-
-    private void sendClearCustomName(Player viewer, Player target) {
-        try {
-            PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_METADATA);
-            packet.getIntegers().write(0, target.getEntityId());
-
-            var serializerText = com.comphenix.protocol.wrappers.WrappedDataWatcher.Registry.getChatComponentSerializer(true);
-            var serializerBool = com.comphenix.protocol.wrappers.WrappedDataWatcher.Registry.get(Boolean.class);
-
-            List<WrappedDataValue> values = new ArrayList<>();
-            values.add(new WrappedDataValue(2, serializerText, Optional.empty()));
-            values.add(new WrappedDataValue(3, serializerBool, false));
-
-            packet.getDataValueCollectionModifier().write(0, values);
-            protocolManager.sendServerPacket(viewer, packet);
-        } catch (Exception e) {
-            plugin.getLogger().warning("No se pudo limpiar nombre ofuscado: " + e.getMessage());
-        }
     }
 }
