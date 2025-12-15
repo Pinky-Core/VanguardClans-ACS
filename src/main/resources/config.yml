@@ -87,11 +87,13 @@ clan_home:
   cooldown: 30 
   teleport_delay: 5 
 
+
 nametag-privacy:
   enabled: false
-  mode: "obfuscate" # obfuscate = nicks ajenos con &k, hide = ocultos, reset = normal
+  mode: "hide" # hide = ocultos, reset = normal
   show-no-clan-names: true # si es false, los sin clan se obfuscan/ocultan igual
   force-override: true # re-asigna el scoreboard del jugador para imponerse a otros plugins de nametag
+  refresh-interval-ticks: 20 # cada cuantos ticks se re-aplica (>=20). Bajalo si otro plugin pisa el scoreboard.
 
 
 blocked-worlds:
@@ -144,3 +146,5 @@ names-blocked:
 discord:
   sql_status_webhook: "https://discord.com/api/webhooks/..."
   sql_status_interval_minutes: 10
+
+
