@@ -191,6 +191,18 @@ public class ACMD implements CommandExecutor, TabCompleter {
                 plugin.getStorageProvider().deleteClan(args[1]);
                 sender.sendMessage(MSG.color(langManager.getMessage("msg.clan_deleted")));
             }
+            case "nametagreset" -> {
+                if (!sender.hasPermission("vanguardclans.admin.nametagreset")) {
+                    sender.sendMessage(MSG.color(langManager.getMessage("msg.no_permission")));
+                    return true;
+                }
+                if (plugin.getNameTagManager() != null) {
+                    plugin.getNameTagManager().resetTeams();
+                    sender.sendMessage(MSG.color("&aNametags reseteados."));
+                } else {
+                    sender.sendMessage(MSG.color("&cNametagManager no esta inicializado."));
+                }
+            }
             default -> help(sender);
         }
 
@@ -726,7 +738,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 1) {
-            return Stream.of("reload", "ban", "unban", "clear", "reports", "lang", "forcejoin", "forceleave", "delete", "sqlstatus", "fix", "repair", "points")
+            return Stream.of("reload", "ban", "unban", "clear", "reports", "lang", "forcejoin", "forceleave", "delete", "sqlstatus", "fix", "repair", "points", "nametagreset")
                     .filter(sub -> sub.startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());
         }

@@ -21,6 +21,7 @@ import me.lewisainsworth.vanguardclans.Database.StorageProvider;
 import me.lewisainsworth.vanguardclans.Database.StorageFactory;
 import me.lewisainsworth.vanguardclans.listeners.PlayerStatsListener;
 import me.lewisainsworth.vanguardclans.Utils.NameTagManager;
+import me.lewisainsworth.vanguardclans.integration.TabHook;
 
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -53,6 +54,7 @@ public class VanguardClan extends JavaPlugin {
    private LangCMD langCMD;
    private CCMD ccCmd;
    private NameTagManager nameTagManager;
+   private TabHook tabHook;
 
    private static VanguardClan instance;
 
@@ -115,6 +117,12 @@ public class VanguardClan extends JavaPlugin {
 
       nameTagManager = new NameTagManager(this);
 
+      tabHook = new TabHook(this);
+      String nametagProvider = getConfig().getString("nametag-privacy.provider", "internal");
+      if ("tab".equalsIgnoreCase(nametagProvider) && Bukkit.getPluginManager().isPluginEnabled("TAB")) {
+         tabHook.start();
+      }
+
       setupMetrics();
       registerCommands();
       registerEvents();
@@ -123,6 +131,12 @@ public class VanguardClan extends JavaPlugin {
       if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
          new PAPI(this).registerPlaceholders();
          getLogger().info("Placeholders de VanguardClans registrados correctamente.");
+      }
+
+      if (!"tab".equalsIgnoreCase(nametagProvider)) {
+         getLogger().info("TAB no usado como proveedor de nametag (provider=" + nametagProvider + "); se usara el gestor interno si esta habilitado.");
+      } else {
+         getLogger().info("TAB usado como proveedor de nametag (provider=tab).");
       }
 
       // Enhanced startup message
@@ -148,6 +162,9 @@ public class VanguardClan extends JavaPlugin {
       }
       if (nameTagManager != null) {
          nameTagManager.shutdown();
+      }
+      if (tabHook != null) {
+         tabHook.stop();
       }
       
       // Enhanced shutdown message

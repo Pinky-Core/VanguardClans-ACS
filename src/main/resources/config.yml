@@ -29,7 +29,7 @@ commands:
 storage:
   # Storage type: mariadb, mysql, h2, sqlite, yaml
   # YAML is recommended for small servers or when you don't have a database
-  type: "yaml"
+  type: "sqlite"
 
   # MariaDB configuration
   mariadb:
@@ -90,13 +90,21 @@ clan_home:
 
 
 nametag-privacy:
-  enabled: false
-  bypass-permission: "vanguardclans.bypass.nametag" # jugadores con este permiso ven todos los nametags
+  enabled: true
+  provider: "internal" # internal / tab (si TAB esta instalado y eliges tab, el gestor interno no toca los scoreboards)
+  mode: "obfuscate" # hide = oculta enemigos, reset = muestra a todos, obfuscate = muestra enemigos con &k
+  bypass-permission: "" # deja vacío para que ni los ops bypassen
   show-no-clan-names: true # valor por defecto para jugadores sin clan si no configuras visibility.no-clan
   visibility:
     same-clan: "always"        # always / hideforotherteams / hideforownteam / never
-    enemy-clan: "never"        # oculta los clanes enemigos
+    enemy-clan: "always"        # oculta los clanes enemigos
     no-clan: "always"          # muestra a los que no tienen clan
+  obfuscate:
+    enabled: true
+    relations:
+      - "enemy-clan"          # same-clan / enemy-clan / no-clan
+    prefix: "&k######"         # prefijo usado para aplicar el efecto &k
+    reset: "&r"                # se aplica al final para no contaminar otros textos
   force-override: true # re-asigna el scoreboard del jugador para imponerse a otros plugins de nametag
   refresh-interval-ticks: 20 # cada cuantos ticks se re-aplica (>=20). Bajalo si otro plugin pisa el scoreboard.
 
@@ -151,5 +159,3 @@ names-blocked:
 discord:
   sql_status_webhook: "https://discord.com/api/webhooks/..."
   sql_status_interval_minutes: 10
-
-

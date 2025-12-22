@@ -3,7 +3,7 @@ version: ${project.version}
 name: VanguardClans
 author: Lewis_Ainsworth
 api-version: "1.20"
-softdepend: [Vault, PlaceholderAPI]
+softdepend: [Vault, PlaceholderAPI, TAB]
 
 commands:
   clan:
@@ -39,6 +39,9 @@ permissions:
 
   vanguardclans.bypass.nametag:
     description: Allows seeing hidden nametags (privacy bypass)
+    default: op
+  vanguardclans.admin.nametagreset:
+    description: Permite usar /clanadmin nametagreset
     default: op
 
   vanguardclans.user.list:
