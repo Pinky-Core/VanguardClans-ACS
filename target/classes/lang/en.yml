@@ -141,13 +141,17 @@ user:
 
   # EDIT COMMAND
   edit_no_leader: "&c Only the leader can modify the clan!"
-  edit_usage: "&c &lUSAGE:&f /clan edit <name|privacy> <value>"
+  edit_usage: "&c &lUSAGE:&f /clan edit <name|tag|privacy> <value>"
   edit_name_success: "&3 Clan name changed to: &f{name}"
   edit_name_error: "&c Error changing the clan name."
   edit_privacy_success: "&3 Clan privacy changed to: &f{privacy}"
   edit_error: "&c Error editing the clan."
   edit_name_too_long: "&cThe clan name exceeds the maximum of {max} visible characters."
   edit_name_blocked: "&cThat clan name is blocked and cannot be used."
+  edit_name_exists: "&cA clan with that name already exists."
+  edit_tag_success: "&3 Clan tag changed to: &f{name}"
+  edit_tag_error: "&c Error changing the clan tag."
+  edit_tag_mismatch: "&cThe tag must keep the same clan name. Use /clan edit name to rename."
 
   # DISBAND COMMAND
   disband_not_leader: "&c You are not the leader of this clan."

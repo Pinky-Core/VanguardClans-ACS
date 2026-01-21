@@ -15,7 +15,7 @@ public class ClanNameHandler {
 
     public static final int DEFAULT_MAX_VISIBLE_LENGTH = 16;
     private static final Pattern HEX_PATTERN = Pattern.compile("&#[a-fA-F0-9]{6}");
-    private static final Pattern FORMAT_CODES = Pattern.compile("&[0-9a-fl-or]");
+    private static final Pattern FORMAT_CODES = Pattern.compile("(?i)&[0-9a-fk-or]");
 
     public static String getVisibleName(String raw) {
         if (raw == null) return "";

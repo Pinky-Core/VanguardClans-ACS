@@ -276,6 +276,13 @@ public class YamlStorageProvider extends AbstractStorageProvider {
             // Get all data for the old clan
             ConfigurationSection oldClanSection = data.getConfigurationSection("clans." + oldName);
             if (oldClanSection == null) return;
+
+            if (oldName.equals(newName)) {
+                data.set("clans." + oldName + ".name_colored", newColoredName);
+                saveData();
+                reloadCache();
+                return;
+            }
             
             // Create new clan with new name
             data.set("clans." + newName, oldClanSection);

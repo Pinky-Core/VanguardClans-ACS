@@ -1164,54 +1164,112 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
-        String type = args[1];
+        String type = args[1].toLowerCase(Locale.ROOT);
         String value = args[2];
 
-        if (type.equalsIgnoreCase("name")) {
-            final String coloredName = ChatColor.translateAlternateColorCodes('&', value);
-            final String plainName = ChatColor.stripColor(coloredName);
-            final String oldClanName = clanName;
-
-            if (plugin.isClanBanned(plainName)) {
-                player.sendMessage(MSG.color(langManager.getMessageWithPrefix("msg.clan_name_banned").replace("{clan}", plainName)));
-                return;
-            }
-
-            // Verificar que el nombre no sea demasiado largo
-            if (plainName.length() > 16) {
-                player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_name_too_long").replace("{max}", "16")));
-                return;
-            }
-
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                try {
-                    // Verificar que no exista un clan con el nuevo nombre
-                    if (plugin.getStorageProvider().clanExists(plainName)) {
-                        Bukkit.getScheduler().runTask(plugin, () -> 
-                            player.sendMessage(MSG.color("&cYa existe un clan con ese nombre."))
-                        );
-                        return;
-                    }
-
-                    // Actualizar el nombre del clan usando StorageProvider
-                    plugin.getStorageProvider().updateClanName(oldClanName, plainName, coloredName);
-                    
-                    // Recargar el cache después de la actualización
-                    plugin.getStorageProvider().reloadCache();
-
-                    Bukkit.getScheduler().runTask(plugin, () ->
-                        player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_name_success").replace("{name}", coloredName)))
-                    );
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Bukkit.getScheduler().runTask(plugin, () ->
-                        player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_name_error")))
-                    );
-                }
-            });
+        if (type.equals("name")) {
+            handleEditName(player, clanName, value);
+            return;
         }
+
+        if (type.equals("tag")) {
+            handleEditTag(player, clanName, value);
+            return;
+        }
+
+        player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_usage")));
     }
+
+    private void handleEditName(Player player, String clanName, String rawName) {
+        String plainName = ClanNameHandler.getVisibleName(rawName);
+        int maxVisibleLength = getMaxClanNameLength();
+
+        if (maxVisibleLength > 0 && plainName.length() > maxVisibleLength) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_name_too_long")
+                .replace("{max}", String.valueOf(maxVisibleLength))));
+            return;
+        }
+
+        if (plugin.isClanBanned(plainName)) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("msg.clan_name_banned")
+                .replace("{clan}", plainName)));
+            return;
+        }
+
+        List<String> blocked = plugin.getFH().getConfig().getStringList("names-blocked.blocked");
+        if (blocked.stream().anyMatch(b -> b.equalsIgnoreCase(plainName))) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_name_blocked")));
+            return;
+        }
+
+        boolean sameName = clanName != null && clanName.equalsIgnoreCase(plainName);
+        if (!sameName && plugin.getStorageProvider().clanExists(plainName)) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_name_exists")));
+            return;
+        }
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                plugin.getStorageProvider().updateClanName(clanName, plainName, rawName);
+                plugin.getStorageProvider().reloadCache();
+
+                Bukkit.getScheduler().runTask(plugin, () ->
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_name_success")
+                        .replace("{name}", MSG.color(rawName))))
+                );
+            } catch (Exception e) {
+                e.printStackTrace();
+                Bukkit.getScheduler().runTask(plugin, () ->
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_name_error")))
+                );
+            }
+        });
+    }
+
+    private void handleEditTag(Player player, String clanName, String rawTag) {
+        if (clanName == null || clanName.isEmpty()) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_clan")));
+            return;
+        }
+
+        String visibleName = ClanNameHandler.getVisibleName(rawTag);
+        if (!clanName.equalsIgnoreCase(visibleName)) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_tag_mismatch")
+                .replace("{name}", clanName)));
+            return;
+        }
+
+        int maxVisibleLength = getMaxClanNameLength();
+        if (maxVisibleLength > 0 && visibleName.length() > maxVisibleLength) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_name_too_long")
+                .replace("{max}", String.valueOf(maxVisibleLength))));
+            return;
+        }
+
+        if (plugin.isClanBanned(visibleName)) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("msg.clan_name_banned")
+                .replace("{clan}", visibleName)));
+            return;
+        }
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                plugin.getStorageProvider().updateClanName(clanName, clanName, rawTag);
+                plugin.getStorageProvider().reloadCache();
+
+                Bukkit.getScheduler().runTask(plugin, () ->
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_tag_success")
+                        .replace("{name}", MSG.color(rawTag))))
+                );
+            } catch (Exception e) {
+                e.printStackTrace();
+                Bukkit.getScheduler().runTask(plugin, () ->
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_tag_error")))
+                );
+            }
+        });
+    }
+
 
 
 
@@ -1802,7 +1860,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                     case "report", "allyremove" -> completions.addAll(VanguardClan.getInstance().getStorageProvider().getCachedClanNames());
                     case "edit" -> {
                         if (isInClan(playerClan) && isLeader(player, playerClan)) {
-                            completions.addAll(List.of("name", "privacy"));
+                            completions.addAll(List.of("name", "tag", "privacy"));
                         }
                     }
                     case "ff" -> {

@@ -140,13 +140,17 @@ user:
 
   # EDIT COMMAND
   edit_no_leader: "&c ¡Solo el líder puede modificar el clan!"
-  edit_usage: "&c &lUSO:&f /clan edit <name|privacy> <valor>"
+  edit_usage: "&c &lUSO:&f /clan edit <name|tag|privacy> <valor>"
   edit_name_success: "&3 Nombre del clan cambiado a: &f{name}"
   edit_name_error: "&c Error al cambiar el nombre del clan."
   edit_privacy_success: "&3 Privacidad del clan cambiada a: &f{privacy}"
   edit_error: "&c Error al editar el clan."
   edit_name_too_long: "&cEl nombre del clan supera el máximo de {max} caracteres visibles."
   edit_name_blocked: "&cEse nombre de clan está bloqueado y no se puede usar."
+  edit_name_exists: "&cYa existe un clan con ese nombre."
+  edit_tag_success: "&3 Tag del clan cambiado a: &f{name}"
+  edit_tag_error: "&c Error al cambiar el tag del clan."
+  edit_tag_mismatch: "&cEl tag debe mantener el mismo nombre del clan. Usa /clan edit name para renombrar."
 
   # DISBAND COMMAND
   disband_not_leader: "&c No eres el líder de este clan."
