@@ -189,6 +189,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 plugin.getStorageProvider().deleteClan(args[1]);
+                plugin.notifyClanDeleted(args[1]);
                 sender.sendMessage(MSG.color(langManager.getMessage("msg.clan_deleted")));
             }
             case "nametagreset" -> {
@@ -412,6 +413,7 @@ public class ACMD implements CommandExecutor, TabCompleter {
         if (plugin.getNameTagManager() != null) {
             plugin.getNameTagManager().reload();
         }
+        plugin.reloadIntegrations();
 
         // Obtener idioma actual y nombre legible
         String currentLang = plugin.getLangManager().getCurrentLang();

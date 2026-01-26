@@ -32,7 +32,8 @@ public class NameTagManager {
 
     private enum Provider {
         INTERNAL,
-        TAB
+        TAB,
+        UNLIMITED
     }
 
     private final VanguardClan plugin;
@@ -421,6 +422,9 @@ public class NameTagManager {
         String normalized = raw.trim().toLowerCase(Locale.ROOT);
         if (normalized.equals("tab")) {
             return Provider.TAB;
+        }
+        if (normalized.equals("unt") || normalized.equals("unlimited")) {
+            return Provider.UNLIMITED;
         }
         return Provider.INTERNAL;
     }

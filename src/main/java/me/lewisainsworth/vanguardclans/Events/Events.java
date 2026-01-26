@@ -176,6 +176,11 @@ public class Events implements Listener {
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
 
+        if (plugin.getChatInputManager() != null && plugin.getChatInputManager().handleChat(player, event.getMessage())) {
+            event.setCancelled(true);
+            return;
+        }
+
         if (plugin.isClanChatToggled(player)) {
             event.setCancelled(true);
             String clanName = plugin.getPlayerClan(player.getName());

@@ -69,7 +69,17 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
                 CREATE TABLE IF NOT EXISTS clan_users (
                     clan TEXT,
                     username TEXT,
+                    role TEXT DEFAULT 'member',
                     PRIMARY KEY (clan, username)
+                )
+            """);
+
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS clan_roles (
+                    clan TEXT,
+                    role TEXT,
+                    permissions TEXT,
+                    PRIMARY KEY (clan, role)
                 )
             """);
 
@@ -170,6 +180,7 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
 
             ensureColumn(con, "clans", "points", "INTEGER DEFAULT 0");
             ensureColumn(con, "clans", "slot_upgrades", "INTEGER DEFAULT 0");
+            ensureColumn(con, "clan_users", "role", "TEXT DEFAULT 'member'");
         }
     }
     
@@ -353,9 +364,10 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
                 
                 // Add leader as first member
                 try (PreparedStatement ps = con.prepareStatement(
-                    "INSERT INTO clan_users (clan, username) VALUES (?, ?)")) {
+                    "INSERT INTO clan_users (clan, username, role) VALUES (?, ?, ?)")) {
                     ps.setString(1, clanName);
                     ps.setString(2, leader);
+                    ps.setString(3, "leader");
                     ps.executeUpdate();
                 }
                 
@@ -414,6 +426,11 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
                     ps.setString(1, clanName);
                     ps.executeUpdate();
                 }
+
+                try (PreparedStatement ps = con.prepareStatement("DELETE FROM clan_roles WHERE clan = ?")) {
+                    ps.setString(1, clanName);
+                    ps.executeUpdate();
+                }
                 
                 try (PreparedStatement ps = con.prepareStatement("DELETE FROM clans WHERE name = ?")) {
                     ps.setString(1, clanName);
@@ -436,9 +453,10 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
     @Override
     public void addPlayerToClan(String playerName, String clanName) {
         try (Connection con = getConnection();
-             PreparedStatement ps = con.prepareStatement("INSERT INTO clan_users (clan, username) VALUES (?, ?)")) {
+             PreparedStatement ps = con.prepareStatement("INSERT INTO clan_users (clan, username, role) VALUES (?, ?, ?)")) {
             ps.setString(1, clanName);
             ps.setString(2, playerName);
+            ps.setString(3, "member");
             ps.executeUpdate();
             reloadCache();
         } catch (SQLException e) {
@@ -485,7 +503,7 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
                 }
                 
                 // Update all related tables
-                String[] tables = {"clan_users", "alliances", "friendlyfire", "clan_invites", "pending_alliances", "reports", "clan_homes"};
+                String[] tables = {"clan_users", "alliances", "friendlyfire", "clan_invites", "pending_alliances", "reports", "clan_homes", "clan_roles"};
                 for (String table : tables) {
                     try (PreparedStatement ps = con.prepareStatement("UPDATE " + table + " SET clan = ? WHERE clan = ?")) {
                         ps.setString(1, newName);
@@ -546,7 +564,7 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
                 while (rs.next()) {
                     String clanName = rs.getString("name");
                     String coloredName = rs.getString("name_colored");
-                    clanNamesCache.add(clanName.toLowerCase());
+                    clanNamesCache.add(clanName);
                     clanColoredNameCache.put(clanName.toLowerCase(), coloredName != null ? coloredName : clanName);
                 }
             }
@@ -775,9 +793,12 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
     @Override
     protected List<String> getPlayerInvitesImpl(String playerName) throws Exception {
         List<String> invites = new ArrayList<>();
+        long cutoff = getInviteCutoff();
         try (Connection con = getConnection();
-             PreparedStatement ps = con.prepareStatement("SELECT clan FROM clan_invites WHERE username = ?")) {
+             PreparedStatement ps = con.prepareStatement(
+                 "SELECT clan FROM clan_invites WHERE username = ? AND timestamp >= ?")) {
             ps.setString(1, playerName);
+            ps.setLong(2, cutoff);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 invites.add(rs.getString("clan"));
@@ -861,6 +882,105 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
                     }
                 }
             }
+        }
+    }
+
+    @Override
+    protected int getPlayerKillsImpl(String playerName) throws Exception {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("SELECT kills FROM player_stats WHERE username = ?")) {
+            ps.setString(1, playerName);
+            ResultSet rs = ps.executeQuery();
+            return rs.next() ? rs.getInt("kills") : 0;
+        }
+    }
+
+    @Override
+    protected int getPlayerDeathsImpl(String playerName) throws Exception {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("SELECT deaths FROM player_stats WHERE username = ?")) {
+            ps.setString(1, playerName);
+            ResultSet rs = ps.executeQuery();
+            return rs.next() ? rs.getInt("deaths") : 0;
+        }
+    }
+
+    @Override
+    protected String getPlayerRoleImpl(String clanName, String playerName) throws Exception {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("SELECT role FROM clan_users WHERE clan = ? AND username = ?")) {
+            ps.setString(1, clanName);
+            ps.setString(2, playerName);
+            ResultSet rs = ps.executeQuery();
+            String role = rs.next() ? rs.getString("role") : null;
+            return role == null || role.trim().isEmpty() ? "member" : role;
+        }
+    }
+
+    @Override
+    protected void setPlayerRoleImpl(String clanName, String playerName, String role) throws Exception {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("UPDATE clan_users SET role = ? WHERE clan = ? AND username = ?")) {
+            ps.setString(1, role);
+            ps.setString(2, clanName);
+            ps.setString(3, playerName);
+            if (ps.executeUpdate() == 0) {
+                try (PreparedStatement insert = con.prepareStatement("INSERT INTO clan_users (clan, username, role) VALUES (?, ?, ?)")) {
+                    insert.setString(1, clanName);
+                    insert.setString(2, playerName);
+                    insert.setString(3, role);
+                    insert.executeUpdate();
+                }
+            }
+        }
+    }
+
+    @Override
+    protected Map<String, Set<String>> getClanRolesImpl(String clanName) throws Exception {
+        Map<String, Set<String>> roles = new HashMap<>();
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("SELECT role, permissions FROM clan_roles WHERE clan = ?")) {
+            ps.setString(1, clanName);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                String role = rs.getString("role");
+                String raw = rs.getString("permissions");
+                Set<String> perms = new HashSet<>();
+                if (raw != null && !raw.trim().isEmpty()) {
+                    for (String entry : raw.split(",")) {
+                        String trimmed = entry.trim();
+                        if (!trimmed.isEmpty()) {
+                            perms.add(trimmed);
+                        }
+                    }
+                }
+                roles.put(role.toLowerCase(Locale.ROOT), perms);
+            }
+        }
+        return roles;
+    }
+
+    @Override
+    protected void setClanRoleImpl(String clanName, String role, Set<String> permissions) throws Exception {
+        String joined = String.join(",", permissions);
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(
+                 "INSERT INTO clan_roles (clan, role, permissions) VALUES (?, ?, ?) " +
+                 "ON CONFLICT(clan, role) DO UPDATE SET permissions = excluded.permissions")) {
+            ps.setString(1, clanName);
+            ps.setString(2, role.toLowerCase(Locale.ROOT));
+            ps.setString(3, joined);
+            ps.executeUpdate();
+        }
+    }
+
+    @Override
+    protected void deleteClanRoleImpl(String clanName, String role) throws Exception {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("DELETE FROM clan_roles WHERE clan = ? AND role = ?")) {
+            ps.setString(1, clanName);
+            ps.setString(2, role.toLowerCase(Locale.ROOT));
+            ps.executeUpdate();
         }
     }
     
@@ -963,9 +1083,12 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
     @Override
     protected List<String> getClanInvitesImpl(String clanName) throws Exception {
         List<String> invites = new ArrayList<>();
+        long cutoff = getInviteCutoff();
         try (Connection con = getConnection();
-             PreparedStatement ps = con.prepareStatement("SELECT username FROM clan_invites WHERE clan = ?")) {
+             PreparedStatement ps = con.prepareStatement(
+                 "SELECT username FROM clan_invites WHERE clan = ? AND timestamp >= ?")) {
             ps.setString(1, clanName);
+            ps.setLong(2, cutoff);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 invites.add(rs.getString("username"));
@@ -997,12 +1120,24 @@ public class SQLiteStorageProvider extends AbstractStorageProvider {
     
     @Override
     protected boolean isPlayerInvitedToClanImpl(String playerName, String clanName) throws Exception {
+        long cutoff = getInviteCutoff();
         try (Connection con = getConnection();
-             PreparedStatement ps = con.prepareStatement("SELECT 1 FROM clan_invites WHERE clan = ? AND username = ?")) {
+             PreparedStatement ps = con.prepareStatement(
+                 "SELECT 1 FROM clan_invites WHERE clan = ? AND username = ? AND timestamp >= ?")) {
             ps.setString(1, clanName);
             ps.setString(2, playerName);
+            ps.setLong(3, cutoff);
             ResultSet rs = ps.executeQuery();
             return rs.next();
+        }
+    }
+
+    @Override
+    protected void cleanupExpiredInvitesImpl(long cutoff) throws Exception {
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement("DELETE FROM clan_invites WHERE timestamp < ?")) {
+            ps.setLong(1, cutoff);
+            ps.executeUpdate();
         }
     }
     

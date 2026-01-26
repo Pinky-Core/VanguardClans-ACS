@@ -16,12 +16,18 @@ import me.lewisainsworth.vanguardclans.CMDs.PECMD;
 import me.lewisainsworth.vanguardclans.CMDs.LangCMD;
 import me.lewisainsworth.vanguardclans.Events.Events;
 import me.lewisainsworth.vanguardclans.Utils.*;
+import me.lewisainsworth.vanguardclans.Utils.ClanRoleManager;
+import me.lewisainsworth.vanguardclans.Utils.ChatInputManager;
+import me.lewisainsworth.vanguardclans.gui.ClanGuiManager;
 import me.lewisainsworth.vanguardclans.Database.MariaDBManager;
 import me.lewisainsworth.vanguardclans.Database.StorageProvider;
 import me.lewisainsworth.vanguardclans.Database.StorageFactory;
 import me.lewisainsworth.vanguardclans.listeners.PlayerStatsListener;
 import me.lewisainsworth.vanguardclans.Utils.NameTagManager;
+import me.lewisainsworth.vanguardclans.integration.DiscordNotifier;
 import me.lewisainsworth.vanguardclans.integration.TabHook;
+import me.lewisainsworth.vanguardclans.integration.UnlimitedNametagHook;
+import me.lewisainsworth.vanguardclans.Utils.IpClanTracker;
 
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -55,6 +61,13 @@ public class VanguardClan extends JavaPlugin {
    private CCMD ccCmd;
    private NameTagManager nameTagManager;
    private TabHook tabHook;
+   private ClanRoleManager roleManager;
+   private ChatInputManager chatInputManager;
+   private ClanGuiManager guiManager;
+
+   private IpClanTracker ipClanTracker;
+   private DiscordNotifier discordNotifier;
+   private UnlimitedNametagHook unlimitedNametagHook;
 
    private static VanguardClan instance;
 
@@ -73,12 +86,14 @@ public class VanguardClan extends JavaPlugin {
       this.clanHomeDelay = getConfig().getInt("clan_home.teleport_delay", 5);
       prefix = getConfig().getString("prefix", "&7 [&a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ&7]&n");
       fh = new FileHandler(this);
+      ipClanTracker = new IpClanTracker(this);
       updater = new Updater(this, 126207);
       metrics = new Metrics(this, 20912);
       econ = new Econo(this);
       ClanUtils.init(this);
       copyLangFiles();
       langManager = new LangManager(this);
+      discordNotifier = new DiscordNotifier(this);
       LangCMD langCMD = new LangCMD(this);
       getServer().getPluginManager().registerEvents(new PlayerStatsListener(this), this);
       setLangCMD(langCMD);
@@ -115,18 +130,22 @@ public class VanguardClan extends JavaPlugin {
          }
       }
 
+      roleManager = new ClanRoleManager(this);
+      chatInputManager = new ChatInputManager(this);
+      guiManager = new ClanGuiManager(this);
+
       nameTagManager = new NameTagManager(this);
 
       tabHook = new TabHook(this);
+      unlimitedNametagHook = new UnlimitedNametagHook(this);
       String nametagProvider = getConfig().getString("nametag-privacy.provider", "internal");
-      if ("tab".equalsIgnoreCase(nametagProvider) && Bukkit.getPluginManager().isPluginEnabled("TAB")) {
-         tabHook.start();
-      }
+      refreshNametagProviders();
 
       setupMetrics();
       registerCommands();
       registerEvents();
       searchUpdates();
+      discordNotifier.reload();
 
       if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
          new PAPI(this).registerPlaceholders();
@@ -153,6 +172,30 @@ public class VanguardClan extends JavaPlugin {
       Bukkit.getConsoleSender().sendMessage(MSG.color("&2&l============================================================"));
    }
 
+   private void refreshNametagProviders() {
+      String provider = getConfig().getString("nametag-privacy.provider", "internal");
+      if ("tab".equalsIgnoreCase(provider) && Bukkit.getPluginManager().isPluginEnabled("TAB")) {
+         tabHook.start();
+      } else {
+         tabHook.stop();
+      }
+      if ("unt".equalsIgnoreCase(provider) && Bukkit.getPluginManager().isPluginEnabled("UnlimitedNameTags")) {
+         unlimitedNametagHook.start();
+      } else {
+         unlimitedNametagHook.stop();
+      }
+   }
+
+   public void reloadIntegrations() {
+      if (ipClanTracker != null) {
+         ipClanTracker.reload();
+      }
+      if (discordNotifier != null) {
+         discordNotifier.reload();
+      }
+      refreshNametagProviders();
+   }
+
 
    @Override
    public void onDisable() {
@@ -165,6 +208,12 @@ public class VanguardClan extends JavaPlugin {
       }
       if (tabHook != null) {
          tabHook.stop();
+      }
+      if (unlimitedNametagHook != null) {
+         unlimitedNametagHook.stop();
+      }
+      if (discordNotifier != null) {
+         discordNotifier.stopWatcher();
       }
       
       // Enhanced shutdown message
@@ -219,6 +268,7 @@ public class VanguardClan extends JavaPlugin {
 
    private void registerEvents() {
       getServer().getPluginManager().registerEvents(new Events(this, ccCmd), this);
+      getServer().getPluginManager().registerEvents(guiManager, this);
    }
 
    public void searchUpdates() {
@@ -307,6 +357,44 @@ public class VanguardClan extends JavaPlugin {
 
    public NameTagManager getNameTagManager() {
       return nameTagManager;
+   }
+
+   public ClanRoleManager getRoleManager() {
+      return roleManager;
+   }
+
+   public ChatInputManager getChatInputManager() {
+      return chatInputManager;
+   }
+
+   public ClanGuiManager getGuiManager() {
+       return guiManager;
+   }
+
+   public IpClanTracker getIpClanTracker() {
+      return ipClanTracker;
+   }
+
+   public DiscordNotifier getDiscordNotifier() {
+      return discordNotifier;
+   }
+
+   public void notifyClanDeleted(String clanName) {
+      if (clanName == null) {
+         return;
+      }
+      if (ipClanTracker != null) {
+         ipClanTracker.removeClan(clanName);
+      }
+   }
+
+   public void notifyClanRenamed(String oldName, String newName) {
+      if (oldName == null || newName == null) {
+         return;
+      }
+      if (ipClanTracker != null) {
+         ipClanTracker.renameClan(oldName, newName);
+      }
    }
 
    // Legacy method for backward compatibility

@@ -9,25 +9,42 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import me.lewisainsworth.vanguardclans.VanguardClan;
+import me.lewisainsworth.vanguardclans.Utils.ClanTopCalculator;
+import me.lewisainsworth.vanguardclans.Utils.ClanTopEntry;
+import me.lewisainsworth.vanguardclans.Utils.TopMetric;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PAPI extends PlaceholderExpansion implements Relational {
 
     private final VanguardClan plugin;
     private final FileConfiguration data;
+    private final ClanTopCalculator topCalculator;
+    private final Map<TopMetric, TopCacheEntry> topCache = new ConcurrentHashMap<>();
+    private static final long TOP_CACHE_MS = 5000L;
+    private static final ThreadLocal<DecimalFormat> TOP_NUMBER_FORMAT =
+        ThreadLocal.withInitial(() -> new DecimalFormat("0.##"));
 
     public PAPI(VanguardClan plugin) {
         this.plugin = plugin;
         this.data = plugin.getFH().getData();
+        this.topCalculator = new ClanTopCalculator(plugin);
     }
 
     @Override
     public boolean canRegister() {
+        return true;
+    }
+
+    @Override
+    public boolean persist() {
         return true;
     }
 
@@ -48,13 +65,18 @@ public class PAPI extends PlaceholderExpansion implements Relational {
 
     @Override
     public String onPlaceholderRequest(Player player, @NotNull String identifier) {
+        String normalized = identifier == null ? "" : identifier.toLowerCase(Locale.ROOT);
+        if (normalized.startsWith("top_")) {
+            return handleTopPlaceholder(normalized);
+        }
+
         if (player == null) return "N/A";
 
         Econo econ = plugin.getEcon();
         String clanName = getPlayerClan(player.getName());
         if (clanName == null) return "N/A";
 
-        switch (identifier.toLowerCase()) {
+        switch (normalized) {
             case "prefix":
                 return VanguardClan.prefix;
 
@@ -176,6 +198,110 @@ public class PAPI extends PlaceholderExpansion implements Relational {
     private String getPlayerClan(String playerName) {
         if (playerName == null) return null;
         return plugin.getStorageProvider().getPlayerClan(playerName);
+    }
+
+    private String handleTopPlaceholder(String identifier) {
+        String[] parts = identifier.split("_");
+        if (parts.length < 3) {
+            return "N/A";
+        }
+
+        TopMetric metric = TopMetric.fromKey(parts[1]).orElse(null);
+        if (metric == null) {
+            return "N/A";
+        }
+
+        int position;
+        try {
+            position = Integer.parseInt(parts[2]);
+        } catch (NumberFormatException e) {
+            return "N/A";
+        }
+        if (position <= 0) {
+            return "N/A";
+        }
+
+        ClanTopEntry entry = getTopEntry(metric, position);
+        if (entry == null) {
+            return "N/A";
+        }
+
+        String field = parts.length >= 4 ? parts[3] : "value";
+        switch (field) {
+            case "tag":
+                return MSG.color(entry.getColoredName() != null ? entry.getColoredName() : entry.getClanName());
+            case "name":
+                return entry.getClanName();
+            case "value":
+                return formatTopValue(entry, metric);
+            case "money":
+                return TOP_NUMBER_FORMAT.get().format(entry.getMoney());
+            case "points":
+                return String.valueOf(entry.getPoints());
+            case "members":
+                return String.valueOf(entry.getMembers());
+            case "kills":
+                return String.valueOf(entry.getKills());
+            case "deaths":
+                return String.valueOf(entry.getDeaths());
+            case "kda":
+            case "kda_total":
+                return TOP_NUMBER_FORMAT.get().format(entry.getTotalKda());
+            case "kda_avg":
+                return TOP_NUMBER_FORMAT.get().format(entry.getAverageKda());
+            default:
+                return "N/A";
+        }
+    }
+
+    private String formatTopValue(ClanTopEntry entry, TopMetric metric) {
+        if (metric == null || entry == null) {
+            return "N/A";
+        }
+        switch (metric) {
+            case KDA:
+                return TOP_NUMBER_FORMAT.get().format(entry.getTotalKda());
+            case POINTS:
+                return String.valueOf(entry.getPoints());
+            case MONEY:
+                return TOP_NUMBER_FORMAT.get().format(entry.getMoney());
+            case MEMBERS:
+                return String.valueOf(entry.getMembers());
+            default:
+                return "N/A";
+        }
+    }
+
+    private ClanTopEntry getTopEntry(TopMetric metric, int position) {
+        List<ClanTopEntry> entries = getTopEntries(metric);
+        if (entries == null || position > entries.size()) {
+            return null;
+        }
+        return entries.get(position - 1);
+    }
+
+    private List<ClanTopEntry> getTopEntries(TopMetric metric) {
+        if (metric == null) {
+            return java.util.Collections.emptyList();
+        }
+        long now = System.currentTimeMillis();
+        TopCacheEntry cache = topCache.get(metric);
+        if (cache != null && now - cache.timestamp <= TOP_CACHE_MS) {
+            return cache.entries;
+        }
+        List<ClanTopEntry> entries = topCalculator.getTopEntries(metric);
+        topCache.put(metric, new TopCacheEntry(entries, now));
+        return entries;
+    }
+
+    private static class TopCacheEntry {
+        private final List<ClanTopEntry> entries;
+        private final long timestamp;
+
+        private TopCacheEntry(List<ClanTopEntry> entries, long timestamp) {
+            this.entries = entries;
+            this.timestamp = timestamp;
+        }
     }
 
 

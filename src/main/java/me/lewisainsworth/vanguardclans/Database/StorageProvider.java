@@ -122,17 +122,22 @@ public interface StorageProvider {
     /**
      * Remove player from clan
      */
-    void removePlayerFromClan(String playerName, String clanName);
-    
+     void removePlayerFromClan(String playerName, String clanName);
+     
+     /**
+      * Update clan leader
+      */
+     void updateClanLeader(String clanName, String newLeader);
+     
+     /**
+      * Update clan name
+      */
+     void updateClanName(String oldName, String newName, String newColoredName);
+
     /**
-     * Update clan leader
+     * Update the clan's colored tag/name without renaming it.
      */
-    void updateClanLeader(String clanName, String newLeader);
-    
-    /**
-     * Update clan name
-     */
-    void updateClanName(String oldName, String newName, String newColoredName);
+    void setClanColoredName(String clanName, String coloredName);
     
     /**
      * Get all clans
@@ -198,6 +203,16 @@ public interface StorageProvider {
      * Get clan invites
      */
     List<String> getClanInvites(String clanName);
+
+    /**
+     * How long invites stay valid (ms)
+     */
+    long INVITE_EXPIRATION_MS = 5 * 60 * 1000L;
+
+    /**
+     * Cleanup expired clan invites
+     */
+    void cleanupExpiredInvites();
     
     /**
      * Add clan invite
@@ -278,6 +293,16 @@ public interface StorageProvider {
      * Get kill/death ratio for a player
      */
     double getKillDeathRatio(String playerName);
+
+    /**
+     * Get player kills
+     */
+    int getPlayerKills(String playerName);
+
+    /**
+     * Get player deaths
+     */
+    int getPlayerDeaths(String playerName);
     
     /**
      * Fix clan colors (for data integrity)
@@ -343,5 +368,30 @@ public interface StorageProvider {
      * Set friendly fire enabled for a clan
      */
     void setFriendlyFireEnabled(String clanName, boolean enabled);
+
+    /**
+     * Get the role for a player in a clan
+     */
+    String getPlayerRole(String clanName, String playerName);
+
+    /**
+     * Set the role for a player in a clan
+     */
+    void setPlayerRole(String clanName, String playerName, String role);
+
+    /**
+     * Get all roles for a clan
+     */
+    Map<String, Set<String>> getClanRoles(String clanName);
+
+    /**
+     * Create/update a clan role
+     */
+    void setClanRole(String clanName, String role, Set<String> permissions);
+
+    /**
+     * Delete a clan role
+     */
+    void deleteClanRole(String clanName, String role);
 
 } 

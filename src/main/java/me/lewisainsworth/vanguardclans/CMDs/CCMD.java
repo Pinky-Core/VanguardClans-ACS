@@ -7,6 +7,9 @@ import me.lewisainsworth.vanguardclans.Utils.MSG;
 import static me.lewisainsworth.vanguardclans.VanguardClan.prefix;
 import me.lewisainsworth.vanguardclans.Utils.LangManager;
 import me.lewisainsworth.vanguardclans.Utils.ClanNameHandler;
+import me.lewisainsworth.vanguardclans.Utils.ClanPermission;
+import me.lewisainsworth.vanguardclans.Utils.ClanRoleManager;
+import me.lewisainsworth.vanguardclans.Utils.TopMetric;
 import me.lewisainsworth.vanguardclans.Database.StorageProvider;
 
 
@@ -79,6 +82,10 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
         // Comando de ayuda paginada
         if (args.length < 1) {
+            if (plugin.getGuiManager() != null) {
+                plugin.getGuiManager().openMainMenu(player);
+                return true;
+            }
             if (!showMainHelpPage) {
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.command_not_found")));
                 return true;
@@ -133,6 +140,9 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                     player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_clan")));
                     return true;
                 }
+                if (!hasClanPermission(player, playerClan, ClanPermission.SETHOME)) {
+                    return true;
+                }
                 plugin.getStorageProvider().setClanHome(playerClan, player.getLocation());
                 player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.home_set")));
                 break;
@@ -144,6 +154,9 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                 }
                 if (playerClan == null || playerClan.isEmpty()) {
                     player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_clan")));
+                    return true;
+                }
+                if (!hasClanPermission(player, playerClan, ClanPermission.DELHOME)) {
                     return true;
                 }
                 plugin.getStorageProvider().deleteClanHome(playerClan);
@@ -174,12 +187,49 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                 this.report(sender, args[1], String.join(" ", Arrays.copyOfRange(args, 2, args.length)));
                 break;
 
+            case "menu":
+            case "gui":
+                if (plugin.getGuiManager() != null) {
+                    plugin.getGuiManager().openMainMenu(player);
+                    break;
+                }
+                sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.command_not_found")));
+                break;
+
+            case "commands":
+                help(player, 1);
+                break;
+
+            case "top":
+                if (!player.hasPermission("vanguardclans.user.top")) {
+                    sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_permission")));
+                    return true;
+                }
+                handleTopCommand(player, args);
+                break;
+
+            case "rank":
+                if (!player.hasPermission("vanguardclans.user.rank")) {
+                    sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_permission")));
+                    return true;
+                }
+                handleRankCommand(player, playerClan, args);
+                break;
+
             case "list":
                 if (!player.hasPermission("vanguardclans.user.list")) {
                     sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_permission")));
                     return true;
                 }
                 this.list(sender);
+                break;
+
+            case "info":
+                if (!player.hasPermission("vanguardclans.user.info")) {
+                    sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_permission")));
+                    return true;
+                }
+                handleInfoCommand(player, playerClan, args);
                 break;
 
             case "join":
@@ -192,6 +242,18 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                     return true;
                 }
                 this.joinClan(sender, playerName, args[1]);
+                break;
+
+            case "decline":
+                if (!player.hasPermission("vanguardclans.user.join")) {
+                    sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_permission")));
+                    return true;
+                }
+                if (args.length != 2) {
+                    sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.invite_decline_usage")));
+                    return true;
+                }
+                this.declineInvite(sender, args);
                 break;
 
             case "leave":
@@ -234,10 +296,10 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                 }
 
                 if (args.length >= 2) {
-                    // Modo clásico: mensaje directo al clan
+                    // Modo cl??sico: mensaje directo al clan
                     this.chat(playerClan, player, Arrays.copyOfRange(args, 1, args.length));
                 } else {
-                    // Modo toggle: activás o desactivás el modo chat clan
+                    // Modo toggle: activ??s o desactiv??s el modo chat clan
                     plugin.toggleClanChat(player);
                     boolean toggled = plugin.isClanChatToggled(player);
                     sender.sendMessage(MSG.color(langManager.getMessageWithPrefix(
@@ -366,7 +428,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             player.sendMessage(MSG.color(helpLines.get(i)));
         }
 
-        // Flechas de navegación
+        // Flechas de navegaci??n
         TextComponent nav = new TextComponent();
 
         if (page > 1) {
@@ -413,10 +475,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
         }
 
         try {
-            // Check if player is the leader
-            String clanLeader = plugin.getStorageProvider().getClanLeader(clanName);
-            if (clanLeader == null || !clanLeader.equalsIgnoreCase(player.getName())) {
-                sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.kick_only_leader")));
+            if (!hasClanPermission(player, clanName, ClanPermission.KICK)) {
                 return;
             }
 
@@ -431,6 +490,13 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                 return;
             }
 
+            String clanLeader = plugin.getStorageProvider().getClanLeader(clanName);
+            if (clanLeader != null && !clanLeader.equalsIgnoreCase(player.getName())
+                && clanLeader.equalsIgnoreCase(target)) {
+                sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.kick_cant_kick_leader")));
+                return;
+            }
+
             // Remove player from clan
             plugin.getStorageProvider().removePlayerFromClan(target, clanName);
 
@@ -442,6 +508,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             List<String> clanMembers = plugin.getStorageProvider().getClanMembers(clanName);
             if (clanMembers.isEmpty()) {
                 plugin.getStorageProvider().deleteClan(clanName);
+                plugin.notifyClanDeleted(clanName);
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.kick_clan_deleted")));
             }
 
@@ -482,6 +549,8 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             } else {
                 // No other members, delete the clan
                 plugin.getStorageProvider().deleteClan(playerClan);
+                plugin.notifyClanDeleted(playerClan);
+                plugin.notifyClanDeleted(playerClan);
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.resign_clan_deleted")));
             }
 
@@ -738,20 +807,21 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
-        double amount;
-        try {
-            amount = Double.parseDouble(args[2]);
-            if (amount <= 0) throw new NumberFormatException();
-        } catch (NumberFormatException e) {
+        Double amountParsed = parsePositiveAmount(args[2]);
+        if (amountParsed == null) {
             player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_invalid_amount")));
             return;
         }
+        double amount = amountParsed;
 
         Econo econ = VanguardClan.getEcon();
         StorageProvider storage = plugin.getStorageProvider();
         double clanBalance = storage.getClanMoney(playerClan);
 
         if (deposit) {
+            if (!hasClanPermission(player, playerClan, ClanPermission.BANK_DEPOSIT)) {
+                return;
+            }
             if (!econ.has(player, amount)) {
                 player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_not_enough_player")));
                 return;
@@ -766,8 +836,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
-        if (!isLeader(player, playerClan)) {
-            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_only_leader_withdraw")));
+        if (!hasClanPermission(player, playerClan, ClanPermission.BANK_WITHDRAW)) {
             return;
         }
 
@@ -782,6 +851,47 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
         player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.economy_withdraw_success")
             .replace("{amount}", formatMoney(amount))
             .replace("{balance}", formatMoney(storage.getClanMoney(playerClan)))));
+    }
+
+    private Double parsePositiveAmount(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String normalized = raw.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        if (normalized.matches(".*[A-Za-z].*")) {
+            return null;
+        }
+
+        normalized = normalized.replace(" ", "");
+        normalized = normalized.replace("$", "");
+        normalized = normalized.replaceAll("[^0-9,\\.]", "");
+        if (normalized.isEmpty()) {
+            return null;
+        }
+
+        if (normalized.matches("^\\d{1,3}(,\\d{3})+$")) {
+            normalized = normalized.replace(",", "");
+        } else if (normalized.matches("^\\d{1,3}(\\.\\d{3})+$")) {
+            normalized = normalized.replace(".", "");
+        } else if (normalized.contains(",") && !normalized.contains(".")) {
+            normalized = normalized.replace(",", ".");
+        } else if (normalized.contains(",") && normalized.contains(".")) {
+            normalized = normalized.replace(",", "");
+        }
+
+        if (!normalized.matches("^[0-9]+(\\.[0-9]+)?$")) {
+            return null;
+        }
+
+        try {
+            double amount = Double.parseDouble(normalized);
+            return amount > 0 ? amount : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private void handleSlotsCommand(Player player, String playerClan, String[] args) {
@@ -842,8 +952,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
-        if (!isLeader(player, playerClan)) {
-            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_not_leader")));
+        if (!hasClanPermission(player, playerClan, ClanPermission.SLOTS_UPGRADE)) {
             return;
         }
 
@@ -891,9 +1000,10 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
-        // Verificar si el jugador es líder del clan
-        if (!isLeader(inviter, inviterClan)) {
-            sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.invite_only_leader")));
+        plugin.getStorageProvider().cleanupExpiredInvites();
+
+        // Verificar si el jugador es l??der del clan
+        if (!hasClanPermission(inviter, inviterClan, ClanPermission.INVITE)) {
             return;
         }
 
@@ -993,6 +1103,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             if (remaining.isEmpty()) {
                 // Delete clan if empty
                 plugin.getStorageProvider().deleteClan(playerClan);
+                plugin.notifyClanDeleted(playerClan);
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.clan_deleted_empty")));
                 return;
             }
@@ -1016,8 +1127,6 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
 
 
-    private static final long INVITE_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutos en ms
-
     private void joinClan(CommandSender sender, String playerName, String clanToJoin) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.only_players_join")));
@@ -1032,17 +1141,22 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
         try {
             // Check if clan exists
+            plugin.getStorageProvider().cleanupExpiredInvites();
             if (!plugin.getStorageProvider().clanExists(clanToJoin)) {
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.clan_not_exist")));
                 return;
             }
 
-            String privacy = plugin.getStorageProvider().getClanPrivacy(clanToJoin);
+            String canonicalClan = resolveClanName(clanToJoin);
+            if (canonicalClan == null || canonicalClan.isEmpty()) {
+                canonicalClan = clanToJoin;
+            }
+            String privacy = plugin.getStorageProvider().getClanPrivacy(canonicalClan);
             boolean canJoin = "Public".equalsIgnoreCase(privacy);
 
             // If clan is private, check for invitation
             if (!canJoin) {
-                canJoin = plugin.getStorageProvider().isPlayerInvitedToClan(playerName, clanToJoin);
+                canJoin = plugin.getStorageProvider().isPlayerInvitedToClan(playerName, canonicalClan);
                 
                 if (!canJoin) {
                     sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.clan_private")));
@@ -1050,9 +1164,9 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                 }
             }
 
-            if (!hasAvailableSlot(clanToJoin)) {
-                int used = plugin.getStorageProvider().getClanMemberCount(clanToJoin);
-                int limit = calculateMaxSlots(clanToJoin);
+            if (!hasAvailableSlot(canonicalClan)) {
+                int used = plugin.getStorageProvider().getClanMemberCount(canonicalClan);
+                int limit = calculateMaxSlots(canonicalClan);
                 sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.slots_full")
                     .replace("{used}", String.valueOf(used))
                     .replace("{limit}", formatSlotLimit(limit))));
@@ -1060,20 +1174,59 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             }
 
             // Add player to clan
-            plugin.getStorageProvider().addPlayerToClan(playerName, clanToJoin);
+            plugin.getStorageProvider().addPlayerToClan(playerName, canonicalClan);
             
             // Remove invitation if exists
-            plugin.getStorageProvider().removeClanInvite(clanToJoin, playerName);
+            plugin.getStorageProvider().removeClanInvite(canonicalClan, playerName);
             
             // Add to clan history
-            PECMD.addClanToHistory(player, clanToJoin);
+            PECMD.addClanToHistory(player, canonicalClan);
 
-            sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.joined_clan").replace("{clan}", clanToJoin)));
+            sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.joined_clan").replace("{clan}", canonicalClan)));
             plugin.getStorageProvider().reloadCache();
 
         } catch (Exception e) {
             e.printStackTrace();
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.join_error")));
+        }
+    }
+
+    private void declineInvite(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.only_players_decline")));
+            return;
+        }
+
+        if (args.length < 2) {
+            sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.invite_decline_usage")));
+            return;
+        }
+
+        String clanInput = args[1];
+        String canonicalClan = resolveClanName(clanInput);
+        if (canonicalClan == null || canonicalClan.isEmpty()) {
+            canonicalClan = clanInput;
+        }
+
+        try {
+            plugin.getStorageProvider().cleanupExpiredInvites();
+            if (!plugin.getStorageProvider().clanExists(canonicalClan)) {
+                sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.clan_not_exist")));
+                return;
+            }
+
+            if (!plugin.getStorageProvider().isPlayerInvitedToClan(player.getName(), canonicalClan)) {
+                sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.invite_decline_no_pending")
+                    .replace("{clan}", canonicalClan)));
+                return;
+            }
+
+            plugin.getStorageProvider().removeClanInvite(canonicalClan, player.getName());
+            sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.invite_declined")
+                .replace("{clan}", canonicalClan)));
+        } catch (Exception e) {
+            e.printStackTrace();
+            sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.invite_decline_error")));
         }
     }
 
@@ -1109,6 +1262,17 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
         } catch (Exception e) {
             e.printStackTrace();
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.clans_error")));
+        }
+    }
+
+    private void handleInfoCommand(Player player, String playerClan, String[] args) {
+        String targetClan = args.length >= 2 ? args[1] : playerClan;
+        if (targetClan == null || targetClan.trim().isEmpty()) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_clan")));
+            return;
+        }
+        if (plugin.getGuiManager() != null) {
+            plugin.getGuiManager().openMembersView(player, targetClan);
         }
     }
 
@@ -1154,18 +1318,13 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
 
     private void edit(Player player, String clanName, String[] args) {
-        if (!isLeader(player, clanName)) {
-            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_no_leader")));
-            return;
-        }
-
-        if (args.length != 3) {
+        if (args.length < 3) {
             player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_usage")));
             return;
         }
 
         String type = args[1].toLowerCase(Locale.ROOT);
-        String value = args[2];
+        String value = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
 
         if (type.equals("name")) {
             handleEditName(player, clanName, value);
@@ -1177,10 +1336,18 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
+        if (type.equals("privacy")) {
+            handleEditPrivacy(player, clanName, value);
+            return;
+        }
+
         player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_usage")));
     }
 
     private void handleEditName(Player player, String clanName, String rawName) {
+        if (!hasClanPermission(player, clanName, ClanPermission.EDIT_NAME)) {
+            return;
+        }
         String plainName = ClanNameHandler.getVisibleName(rawName);
         int maxVisibleLength = getMaxClanNameLength();
 
@@ -1208,9 +1375,13 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
+        String currentColored = plugin.getStorageProvider().getClanColoredName(clanName);
+        String newColored = (currentColored == null || currentColored.isEmpty()) ? rawName : currentColored;
+
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                plugin.getStorageProvider().updateClanName(clanName, plainName, rawName);
+                plugin.getStorageProvider().updateClanName(clanName, plainName, newColored);
+                plugin.notifyClanRenamed(clanName, plainName);
                 plugin.getStorageProvider().reloadCache();
 
                 Bukkit.getScheduler().runTask(plugin, () ->
@@ -1227,18 +1398,16 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
     }
 
     private void handleEditTag(Player player, String clanName, String rawTag) {
+        if (!hasClanPermission(player, clanName, ClanPermission.EDIT_TAG)) {
+            return;
+        }
         if (clanName == null || clanName.isEmpty()) {
             player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_clan")));
             return;
         }
 
-        String visibleName = ClanNameHandler.getVisibleName(rawTag);
-        if (!clanName.equalsIgnoreCase(visibleName)) {
-            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_tag_mismatch")
-                .replace("{name}", clanName)));
-            return;
-        }
-
+        String coloredTag = MSG.color(rawTag);
+        String visibleName = ClanNameHandler.getVisibleName(coloredTag);
         int maxVisibleLength = getMaxClanNameLength();
         if (maxVisibleLength > 0 && visibleName.length() > maxVisibleLength) {
             player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_name_too_long")
@@ -1246,25 +1415,52 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
-        if (plugin.isClanBanned(visibleName)) {
-            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("msg.clan_name_banned")
-                .replace("{clan}", visibleName)));
-            return;
-        }
-
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                plugin.getStorageProvider().updateClanName(clanName, clanName, rawTag);
+                plugin.getStorageProvider().setClanColoredName(clanName, coloredTag);
                 plugin.getStorageProvider().reloadCache();
 
                 Bukkit.getScheduler().runTask(plugin, () ->
                     player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_tag_success")
-                        .replace("{name}", MSG.color(rawTag))))
+                        .replace("{name}", coloredTag)))
                 );
             } catch (Exception e) {
                 e.printStackTrace();
                 Bukkit.getScheduler().runTask(plugin, () ->
                     player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_tag_error")))
+                );
+            }
+        });
+    }
+
+    private void handleEditPrivacy(Player player, String clanName, String rawPrivacy) {
+        if (!hasClanPermission(player, clanName, ClanPermission.EDIT_PRIVACY)) {
+            return;
+        }
+        if (clanName == null || clanName.isEmpty()) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_clan")));
+            return;
+        }
+
+        String normalized = rawPrivacy.trim().toLowerCase(Locale.ROOT);
+        if (!normalized.equals("public") && !normalized.equals("private")) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_privacy_usage")));
+            return;
+        }
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                plugin.getStorageProvider().setClanPrivacy(clanName, normalized);
+                plugin.getStorageProvider().reloadCache();
+
+                Bukkit.getScheduler().runTask(plugin, () ->
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_privacy_success")
+                        .replace("{privacy}", normalized)))
+                );
+            } catch (Exception e) {
+                e.printStackTrace();
+                Bukkit.getScheduler().runTask(plugin, () ->
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.edit_error")))
                 );
             }
         });
@@ -1283,19 +1479,13 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
         }
 
         Player player = (Player) sender;
+        if (!hasClanPermission(player, playerClan, ClanPermission.DISBAND)) {
+            return;
+        }
         Econo econ = VanguardClan.getEcon();
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                // Check if player is the leader
-                String clanLeader = plugin.getStorageProvider().getClanLeader(playerClan);
-                if (clanLeader == null || !clanLeader.equalsIgnoreCase(player.getName())) {
-                    Bukkit.getScheduler().runTask(plugin, () ->
-                        sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.disband_not_leader")))
-                    );
-                    return;
-                }
-
                 // Delete clan using StorageProvider
                 plugin.getStorageProvider().deleteClan(playerClan);
 
@@ -1333,6 +1523,12 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
         String rawClanName = args[1];
         String plainClanName = ClanNameHandler.getVisibleName(rawClanName);
         String playerName = player.getName();
+        final String creatorIp;
+        if (player.getAddress() != null && player.getAddress().getAddress() != null) {
+            creatorIp = player.getAddress().getAddress().getHostAddress();
+        } else {
+            creatorIp = "unknown";
+        }
         FileConfiguration config = plugin.getFH().getConfig();
         Econo econ = VanguardClan.getEcon();
         int maxClanNameLength = getMaxClanNameLength();
@@ -1349,7 +1545,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
             return;
         }
 
-        // ❌ Verificar si está baneado
+        // ??? Verificar si est?? baneado
         if (plugin.isClanBanned(plainClanName)) {
             sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("msg.clan_name_banned").replace("{clan}", plainClanName)));
             return;
@@ -1365,7 +1561,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                     return;
                 }
 
-                // Límite de clanes
+                // L??mite de clanes
                 int maxClans = config.getInt("max-clans", 0);
                 if (maxClans > 0) {
                     Set<String> allClans = plugin.getStorageProvider().getAllClans();
@@ -1378,7 +1574,23 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                     }
                 }
 
-                // Economía
+                // Anti-multicuentas
+                boolean enforceIp = config.getBoolean("anti-multiaccount.enabled", false);
+                int perIpLimit = config.getInt("anti-multiaccount.max-clans-per-ip", 1);
+                boolean onlyWhenGlobalLimit = config.getBoolean("anti-multiaccount.only-when-global-limit", true);
+                boolean shouldEnforceIp = enforceIp && perIpLimit > 0 && (!onlyWhenGlobalLimit || maxClans > 0);
+                if (shouldEnforceIp) {
+                    int existing = plugin.getIpClanTracker().getClanCountForIp(creatorIp);
+                    if (existing >= perIpLimit) {
+                        Bukkit.getScheduler().runTask(plugin, () ->
+                                sender.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.create_ip_limit_reached")
+                                        .replace("{limit}", String.valueOf(perIpLimit))))
+                        );
+                        return;
+                    }
+                }
+
+                // Econom??a
                 if (config.getBoolean("economy.enabled")) {
                     int cost = config.getInt("economy.cost.create-clan");
                     if (econ.getBalance(player) < cost) {
@@ -1393,9 +1605,13 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
                 // Create clan using StorageProvider
                 try {
-                    plugin.getStorageProvider().createClan(plainClanName, rawClanName, playerName, playerName, 0.0, "public");
+                    String configuredPrivacy = config.getString("clan.default-privacy", "private");
+                    String privacy = "public".equalsIgnoreCase(configuredPrivacy) ? "public" : "private";
+                    plugin.getStorageProvider().createClan(plainClanName, rawClanName, playerName, playerName, 0.0, privacy);
+                    plugin.getIpClanTracker().addClan(creatorIp, plainClanName);
 
                     Bukkit.getScheduler().runTask(plugin, () -> {
+                        plugin.getDiscordNotifier().onClanCreated(plainClanName, playerName, creatorIp);
                         PECMD.addClanToHistory(player, plainClanName);
                         player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.create_success")
                                 .replace("{clan}", MSG.color(rawClanName))));
@@ -1423,8 +1639,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
     private void handleFriendlyFireCommand(CommandSender sender, String playerClan, String[] args) {
         Player player = (Player) sender;
 
-        if (!isLeader(player, playerClan)) {
-            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.not_leader_command")));
+        if (!hasClanPermission(player, playerClan, ClanPermission.FF)) {
             return;
         }
 
@@ -1455,8 +1670,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
     private void handleAllyFriendlyFireCommand(CommandSender sender, String playerClan, String[] args) {
          Player player = (Player) sender;
 
-        if (!isLeader(player, playerClan)) {
-            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.not_leader_command")));
+        if (!hasClanPermission(player, playerClan, ClanPermission.ALLY_FF)) {
             return;
         }
 
@@ -1503,8 +1717,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
     private void handleAllyCommand(CommandSender sender, String playerName, String playerClan, String[] args) {
          Player player = (Player) sender;
 
-        if (!isLeader(player, playerClan)) {
-            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.not_leader_command")));
+        if (!hasClanPermission(player, playerClan, ClanPermission.ALLY)) {
             return;
         }
         
@@ -1567,8 +1780,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
     }
 
     private void setHome(Player player, String clan) {
-        if (!isLeader(player, clan)) {
-            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.not_leader_home")));
+        if (!hasClanPermission(player, clan, ClanPermission.SETHOME)) {
             return;
         }
 
@@ -1610,7 +1822,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                 player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.home_not_set")));
             }
         } else {
-            // Teletransporta con delay y cancelación por movimiento
+            // Teletransporta con delay y cancelaci??n por movimiento
             plugin.teleportingPlayers.add(uuid);
             player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.teleporting_home")
                     .replace("{seconds}", String.valueOf(plugin.clanHomeDelay))));
@@ -1638,8 +1850,211 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
 
 
+    private void handleTopCommand(Player player, String[] args) {
+        if (args.length < 2) {
+            if (plugin.getGuiManager() != null) {
+                plugin.getGuiManager().openTopSelect(player);
+                return;
+            }
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.top_usage")));
+            return;
+        }
+
+        TopMetric metric = TopMetric.fromKey(args[1]).orElse(null);
+        if (metric == null) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.top_invalid_metric")));
+            return;
+        }
+
+        int page = 1;
+        if (args.length >= 3) {
+            try {
+                page = Integer.parseInt(args[2]);
+            } catch (NumberFormatException e) {
+                player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.invalid_page_number")));
+                return;
+            }
+        }
+
+        if (plugin.getGuiManager() != null) {
+            plugin.getGuiManager().openTopList(player, metric, page);
+            return;
+        }
+
+        player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.top_usage")));
+    }
+
+    private void handleRankCommand(Player player, String clanName, String[] args) {
+        if (clanName == null || clanName.isEmpty()) {
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.no_clan")));
+            return;
+        }
+
+        if (!hasClanPermission(player, clanName, ClanPermission.RANK_MANAGE)) {
+            return;
+        }
+
+        if (args.length < 2) {
+            if (plugin.getGuiManager() != null) {
+                plugin.getGuiManager().openRolesMenu(player);
+                return;
+            }
+            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_usage")));
+            return;
+        }
+
+        String sub = args[1].toLowerCase(Locale.ROOT);
+        switch (sub) {
+            case "create":
+                if (args.length < 3) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_usage_create")));
+                    return;
+                }
+                String newRole = normalizeRoleName(args[2]);
+                if (isReservedRole(newRole)) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_cant_edit_role")));
+                    return;
+                }
+                if (roleExists(clanName, newRole)) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_role_exists")));
+                    return;
+                }
+                plugin.getRoleManager().createRole(clanName, newRole);
+                player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_role_created")
+                    .replace("{role}", formatRoleName(newRole))));
+                return;
+            case "delete":
+                if (args.length < 3) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_usage_delete")));
+                    return;
+                }
+                String deleteRole = normalizeRoleName(args[2]);
+                if (isReservedRole(deleteRole)) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_cant_edit_role")));
+                    return;
+                }
+                if (!roleExists(clanName, deleteRole)) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_role_not_found")));
+                    return;
+                }
+                List<String> members = plugin.getStorageProvider().getClanMembers(clanName);
+                for (String member : members) {
+                    String currentRole = plugin.getRoleManager().getPlayerRole(clanName, member);
+                    if (deleteRole.equalsIgnoreCase(currentRole)) {
+                        plugin.getRoleManager().setPlayerRole(clanName, member, ClanRoleManager.ROLE_MEMBER);
+                    }
+                }
+                plugin.getRoleManager().deleteRole(clanName, deleteRole);
+                player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_role_deleted")
+                    .replace("{role}", formatRoleName(deleteRole))));
+                return;
+            case "set":
+                if (args.length < 4) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_usage_set")));
+                    return;
+                }
+                String target = args[2];
+                if (!plugin.getStorageProvider().isPlayerInClan(target, clanName)) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_target_not_in_clan")));
+                    return;
+                }
+                String newRoleName = normalizeRoleName(args[3]);
+                if (ClanRoleManager.ROLE_LEADER.equalsIgnoreCase(newRoleName)) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_cant_edit_leader")));
+                    return;
+                }
+                if (!roleExists(clanName, newRoleName)) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_role_not_found")));
+                    return;
+                }
+                String leader = plugin.getStorageProvider().getClanLeader(clanName);
+                if (leader != null && leader.equalsIgnoreCase(target)) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_cant_edit_leader")));
+                    return;
+                }
+                plugin.getRoleManager().setPlayerRole(clanName, target, newRoleName);
+                player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_role_set")
+                    .replace("{player}", target)
+                    .replace("{role}", formatRoleName(newRoleName))));
+                return;
+            case "perms":
+                if (args.length < 4) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_usage_perms")));
+                    return;
+                }
+                String role = normalizeRoleName(args[2]);
+                if (isReservedRole(role)) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_cant_edit_role")));
+                    return;
+                }
+                if (!roleExists(clanName, role)) {
+                    player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_role_not_found")));
+                    return;
+                }
+                String action = args[3].toLowerCase(Locale.ROOT);
+                Map<String, Set<ClanPermission>> rolePerms = plugin.getRoleManager().getClanRolePermissions(clanName);
+                Set<ClanPermission> perms = new HashSet<>(rolePerms.getOrDefault(role.toLowerCase(Locale.ROOT), Collections.<ClanPermission>emptySet()));
+                switch (action) {
+                    case "list":
+                        player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_permissions_list")
+                            .replace("{role}", formatRoleName(role))
+                            .replace("{perms}", formatPermissionList(perms))));
+                        return;
+                    case "clear":
+                        plugin.getRoleManager().setRolePermissions(clanName, role, Collections.<ClanPermission>emptySet());
+                        player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_permissions_cleared")
+                            .replace("{role}", formatRoleName(role))));
+                        return;
+                    case "add":
+                    case "remove":
+                        if (args.length < 5) {
+                            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_usage_perms")));
+                            return;
+                        }
+                        ClanPermission permission = ClanPermission.fromKey(args[4]).orElse(null);
+                        if (permission == null) {
+                            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_invalid_permission")));
+                            return;
+                        }
+                        boolean changed;
+                        if (action.equals("add")) {
+                            changed = perms.add(permission);
+                        } else {
+                            changed = perms.remove(permission);
+                        }
+                        if (changed) {
+                            plugin.getRoleManager().setRolePermissions(clanName, role, perms);
+                            String messageKey = action.equals("add")
+                                ? "user.rank_permission_added"
+                                : "user.rank_permission_removed";
+                            player.sendMessage(MSG.color(langManager.getMessageWithPrefix(messageKey)
+                                .replace("{role}", formatRoleName(role))
+                                .replace("{permission}", permission.getKey())));
+                        }
+                        return;
+                    default:
+                        player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_usage_perms")));
+                        return;
+                }
+            case "list":
+                Map<String, Set<ClanPermission>> allRoles = plugin.getRoleManager().getClanRolePermissions(clanName);
+                Set<String> roleNames = new HashSet<>(allRoles.keySet());
+                roleNames.add(ClanRoleManager.ROLE_MEMBER);
+                roleNames.add(ClanRoleManager.ROLE_CO_LEADER);
+                List<String> roleList = new ArrayList<>(roleNames);
+                Collections.sort(roleList);
+                player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_role_list")
+                    .replace("{roles}", String.join(", ", roleList))));
+                return;
+            default:
+                player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.rank_usage")));
+                return;
+        }
+    }
+
+
     // ------------------------------------
-    // Métodos auxiliares:
+    // M??todos auxiliares:
 
 
     private void deleteEntireClanData(Connection con, String clan) throws SQLException {
@@ -1791,8 +2206,7 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
     private void handleAllyFriendlyFireCommand(CommandSender sender, String playerClan, String value) {
          Player player = (Player) sender;
 
-        if (!isLeader(player, playerClan)) {
-            player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.not_leader_command")));
+        if (!hasClanPermission(player, playerClan, ClanPermission.ALLY_FF)) {
             return;
         }
 
@@ -1842,9 +2256,10 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
 
         switch (args.length) {
             case 1 -> completions.addAll(List.of(
-                    "create", "disband", "report", "list", "join",
+                    "create", "disband", "report", "list", "info", "join",
                     "kick", "invite", "chat", "leave", "stats", "resign", "edit",
-                    "ff", "ally", "help", "home", "sethome", "delhome", "economy", "slots"
+                    "ff", "ally", "help", "home", "sethome", "delhome", "economy", "slots",
+                    "top", "rank", "menu", "gui", "commands"
             ));
 
             case 2 -> {
@@ -1853,13 +2268,24 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                     case "join" -> {
                         if (isNotInClan(playerClan)) completions.addAll(VanguardClan.getInstance().getStorageProvider().getCachedClanNames());
                     }
-                    case "invite", "kick" -> {
-                        if (isInClan(playerClan) && isLeader(player, playerClan)) completions.addAll(getOnlinePlayerNames());
+                    case "invite" -> {
+                        if (isInClan(playerClan) && hasClanPermissionSilent(player, playerClan, ClanPermission.INVITE)) {
+                            completions.addAll(getOnlinePlayerNames());
+                        }
+                    }
+                    case "kick" -> {
+                        if (isInClan(playerClan) && hasClanPermissionSilent(player, playerClan, ClanPermission.KICK)) {
+                            completions.addAll(getOnlinePlayerNames());
+                        }
                     }
                     case "economy" -> completions.addAll(List.of("deposit", "withdraw"));
                     case "report", "allyremove" -> completions.addAll(VanguardClan.getInstance().getStorageProvider().getCachedClanNames());
                     case "edit" -> {
-                        if (isInClan(playerClan) && isLeader(player, playerClan)) {
+                        if (isInClan(playerClan) && (
+                            hasClanPermissionSilent(player, playerClan, ClanPermission.EDIT_NAME)
+                                || hasClanPermissionSilent(player, playerClan, ClanPermission.EDIT_TAG)
+                                || hasClanPermissionSilent(player, playerClan, ClanPermission.EDIT_PRIVACY)
+                        )) {
                             completions.addAll(List.of("name", "tag", "privacy"));
                         }
                     }
@@ -1870,6 +2296,8 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                         completions.addAll(List.of("request", "accept", "decline", "remove", "ff"));
                     }
                     case "slots" -> completions.add("buy");
+                    case "top" -> completions.addAll(List.of("kda", "points", "money", "members"));
+                    case "rank" -> completions.addAll(List.of("create", "delete", "set", "perms", "list"));
                 }
             }
 
@@ -1882,6 +2310,35 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                         completions.addAll(VanguardClan.getInstance().getStorageProvider().getCachedClanNames());
                     } else if (arg1.equals("ff")) {
                         completions.addAll(List.of("on", "off"));
+                    }
+                } else if (arg0.equals("rank")) {
+                    if (arg1.equals("set")) {
+                        completions.addAll(getClanMemberNames(playerClan));
+                    } else if (arg1.equals("delete") || arg1.equals("perms")) {
+                        completions.addAll(getRoleNames(playerClan));
+                    }
+                }
+            }
+
+            case 4 -> {
+                String arg0 = args[0].toLowerCase();
+                String arg1 = args[1].toLowerCase();
+                if (arg0.equals("rank")) {
+                    if (arg1.equals("set")) {
+                        completions.addAll(getRoleNames(playerClan));
+                    } else if (arg1.equals("perms")) {
+                        completions.addAll(List.of("list", "add", "remove", "clear"));
+                    }
+                }
+            }
+
+            case 5 -> {
+                String arg0 = args[0].toLowerCase();
+                String arg1 = args[1].toLowerCase();
+                String arg3 = args[3].toLowerCase();
+                if (arg0.equals("rank") && arg1.equals("perms") && (arg3.equals("add") || arg3.equals("remove"))) {
+                    for (ClanPermission permission : ClanPermission.values()) {
+                        completions.add(permission.getKey());
                     }
                 }
             }
@@ -1903,6 +2360,10 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
     private boolean isLeader(Player player, String clanName) {
         if (clanName == null || clanName.isEmpty()) {
             return false;
+        }
+
+        if (plugin.getRoleManager() != null && plugin.getRoleManager().isCoLeader(player, clanName)) {
+            return true;
         }
         
         // Try to get the leader using StorageProvider
@@ -1957,6 +2418,18 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
         return baseSlots + extraSlots;
     }
 
+    private String resolveClanName(String clanName) {
+        if (clanName == null || clanName.trim().isEmpty()) {
+            return clanName;
+        }
+        for (String stored : plugin.getStorageProvider().getCachedClanNames()) {
+            if (stored.equalsIgnoreCase(clanName)) {
+                return stored;
+            }
+        }
+        return clanName;
+    }
+
     private List<SlotUpgrade> getConfiguredUpgrades() {
         List<SlotUpgrade> upgrades = new ArrayList<>();
         for (Map<?, ?> entry : plugin.getFH().getConfig().getMapList("clan-slots.upgrades")) {
@@ -1989,4 +2462,107 @@ public class CCMD implements CommandExecutor, TabCompleter, Listener {
                 .map(Player::getName)
                 .collect(Collectors.toList());
     }
+
+    private List<String> getClanMemberNames(String clanName) {
+        if (clanName == null || clanName.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return new ArrayList<>(plugin.getStorageProvider().getClanMembers(clanName));
+    }
+
+    private List<String> getRoleNames(String clanName) {
+        if (clanName == null || clanName.isEmpty() || plugin.getRoleManager() == null) {
+            return Collections.emptyList();
+        }
+        Map<String, Set<ClanPermission>> roles = plugin.getRoleManager().getClanRolePermissions(clanName);
+        Set<String> names = new HashSet<>(roles.keySet());
+        names.add(ClanRoleManager.ROLE_MEMBER);
+        names.add(ClanRoleManager.ROLE_CO_LEADER);
+        return new ArrayList<>(names);
+    }
+
+    private boolean hasClanPermissionSilent(Player player, String clanName, ClanPermission permission) {
+        if (player == null || clanName == null || clanName.isEmpty() || permission == null) {
+            return false;
+        }
+        if (plugin.getRoleManager() != null) {
+            return plugin.getRoleManager().hasPermission(player, clanName, permission);
+        }
+        return isLeader(player, clanName);
+    }
+
+    private String normalizeRoleName(String role) {
+        if (role == null || role.trim().isEmpty()) {
+            return ClanRoleManager.ROLE_MEMBER;
+        }
+        String normalized = role.trim().toLowerCase(Locale.ROOT)
+            .replace("_", "-");
+        if (normalized.equals("coleader") || normalized.equals("co-leader") || normalized.equals("colider") || normalized.equals("co-lider")) {
+            return ClanRoleManager.ROLE_CO_LEADER;
+        }
+        return normalized;
+    }
+
+    private boolean isReservedRole(String role) {
+        if (role == null) {
+            return false;
+        }
+        return ClanRoleManager.ROLE_LEADER.equalsIgnoreCase(role)
+            || ClanRoleManager.ROLE_CO_LEADER.equalsIgnoreCase(role);
+    }
+
+    private boolean roleExists(String clanName, String role) {
+        if (role == null || role.trim().isEmpty()) {
+            return false;
+        }
+        if (ClanRoleManager.ROLE_MEMBER.equalsIgnoreCase(role) || ClanRoleManager.ROLE_CO_LEADER.equalsIgnoreCase(role)) {
+            return true;
+        }
+        if (plugin.getRoleManager() == null) {
+            return false;
+        }
+        Map<String, Set<ClanPermission>> roles = plugin.getRoleManager().getClanRolePermissions(clanName);
+        return roles.containsKey(role.toLowerCase(Locale.ROOT));
+    }
+
+    private String formatRoleName(String role) {
+        if (role == null || role.trim().isEmpty()) {
+            return ClanRoleManager.ROLE_MEMBER;
+        }
+        String[] parts = role.split("-");
+        StringBuilder builder = new StringBuilder();
+        for (String part : parts) {
+            if (part.isEmpty()) {
+                continue;
+            }
+            builder.append(Character.toUpperCase(part.charAt(0)));
+            if (part.length() > 1) {
+                builder.append(part.substring(1));
+            }
+            builder.append(" ");
+        }
+        return builder.toString().trim();
+    }
+
+    private String formatPermissionList(Set<ClanPermission> permissions) {
+        if (permissions == null || permissions.isEmpty()) {
+            return langManager.getMessage("user.rank_permissions_none");
+        }
+        return permissions.stream()
+            .map(ClanPermission::getKey)
+            .sorted()
+            .collect(Collectors.joining(", "));
+    }
+
+    private boolean hasClanPermission(Player player, String clanName, ClanPermission permission) {
+        if (player == null || clanName == null || clanName.isEmpty() || permission == null) {
+            return false;
+        }
+        if (plugin.getRoleManager() != null && plugin.getRoleManager().hasPermission(player, clanName, permission)) {
+            return true;
+        }
+        player.sendMessage(MSG.color(langManager.getMessageWithPrefix("user.role_no_permission")));
+        return false;
+    }
 }
+

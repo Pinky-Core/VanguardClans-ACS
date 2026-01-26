@@ -205,7 +205,8 @@ public class YamlStorageProvider extends AbstractStorageProvider {
             data.set(path + ".created", System.currentTimeMillis());
             
             // Add leader as first member
-            data.set("clan_users." + clanName + "." + leader, true);
+            data.set("clan_users." + clanName + "." + leader, "leader");
+            data.set("clan_roles." + clanName + ".member.permissions", new ArrayList<>());
             
             saveData();
             reloadCache();
@@ -226,6 +227,7 @@ public class YamlStorageProvider extends AbstractStorageProvider {
             data.set("alliances." + clanName, null);
             data.set("pending_alliances." + clanName, null);
             data.set("reports." + clanName, null);
+            data.set("clan_roles." + clanName, null);
             
             saveData();
             reloadCache();
@@ -238,7 +240,7 @@ public class YamlStorageProvider extends AbstractStorageProvider {
     public void addPlayerToClan(String playerName, String clanName) {
         lock.writeLock().lock();
         try {
-            data.set("clan_users." + clanName + "." + playerName, true);
+            data.set("clan_users." + clanName + "." + playerName, "member");
             saveData();
             reloadCache();
         } finally {
@@ -345,6 +347,11 @@ public class YamlStorageProvider extends AbstractStorageProvider {
             data.set("reports." + newName, data.get("reports." + oldName));
             data.set("reports." + oldName, null);
         }
+
+        if (data.contains("clan_roles." + oldName)) {
+            data.set("clan_roles." + newName, data.get("clan_roles." + oldName));
+            data.set("clan_roles." + oldName, null);
+        }
     }
     
     @Override
@@ -359,7 +366,7 @@ public class YamlStorageProvider extends AbstractStorageProvider {
             ConfigurationSection clansSection = data.getConfigurationSection("clans");
             if (clansSection != null) {
                 for (String clanName : clansSection.getKeys(false)) {
-                    clanNamesCache.add(clanName.toLowerCase());
+                    clanNamesCache.add(clanName);
                     String coloredName = data.getString("clans." + clanName + ".name_colored", clanName);
                     clanColoredNameCache.put(clanName.toLowerCase(), coloredName);
                 }
@@ -510,10 +517,14 @@ public class YamlStorageProvider extends AbstractStorageProvider {
             List<String> invites = new ArrayList<>();
             ConfigurationSection invitesSection = data.getConfigurationSection("clan_invites");
             if (invitesSection != null) {
+                long cutoff = getInviteCutoff();
                 for (String clanName : invitesSection.getKeys(false)) {
                     ConfigurationSection clanInvites = invitesSection.getConfigurationSection(clanName);
                     if (clanInvites != null && clanInvites.contains(playerName)) {
-                        invites.add(clanName);
+                        long timestamp = clanInvites.getLong(playerName, 0L);
+                        if (timestamp >= cutoff) {
+                            invites.add(clanName);
+                        }
                     }
                 }
             }
@@ -615,6 +626,99 @@ public class YamlStorageProvider extends AbstractStorageProvider {
             lock.writeLock().unlock();
         }
     }
+
+    @Override
+    protected int getPlayerKillsImpl(String playerName) throws Exception {
+        lock.readLock().lock();
+        try {
+            ConfigurationSection playerSection = data.getConfigurationSection("player_stats." + playerName);
+            return playerSection != null ? playerSection.getInt("kills", 0) : 0;
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    protected int getPlayerDeathsImpl(String playerName) throws Exception {
+        lock.readLock().lock();
+        try {
+            ConfigurationSection playerSection = data.getConfigurationSection("player_stats." + playerName);
+            return playerSection != null ? playerSection.getInt("deaths", 0) : 0;
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    protected String getPlayerRoleImpl(String clanName, String playerName) throws Exception {
+        lock.readLock().lock();
+        try {
+            Object value = data.get("clan_users." + clanName + "." + playerName);
+            if (value instanceof String) {
+                return (String) value;
+            }
+            if (value instanceof ConfigurationSection) {
+                ConfigurationSection section = (ConfigurationSection) value;
+                return section.getString("role", "member");
+            }
+            return "member";
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    protected void setPlayerRoleImpl(String clanName, String playerName, String role) throws Exception {
+        lock.writeLock().lock();
+        try {
+            data.set("clan_users." + clanName + "." + playerName, role);
+            saveData();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    protected Map<String, Set<String>> getClanRolesImpl(String clanName) throws Exception {
+        lock.readLock().lock();
+        try {
+            Map<String, Set<String>> roles = new HashMap<>();
+            ConfigurationSection clanSection = data.getConfigurationSection("clan_roles." + clanName);
+            if (clanSection == null) {
+                return roles;
+            }
+            for (String role : clanSection.getKeys(false)) {
+                List<String> permissions = clanSection.getStringList(role + ".permissions");
+                roles.put(role.toLowerCase(Locale.ROOT), new HashSet<>(permissions));
+            }
+            return roles;
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    protected void setClanRoleImpl(String clanName, String role, Set<String> permissions) throws Exception {
+        lock.writeLock().lock();
+        try {
+            String path = "clan_roles." + clanName + "." + role.toLowerCase(Locale.ROOT) + ".permissions";
+            data.set(path, new ArrayList<>(permissions));
+            saveData();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    protected void deleteClanRoleImpl(String clanName, String role) throws Exception {
+        lock.writeLock().lock();
+        try {
+            data.set("clan_roles." + clanName + "." + role.toLowerCase(Locale.ROOT), null);
+            saveData();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
     
     @Override
     protected Location getClanHomeImpl(String clanName) throws Exception {
@@ -706,7 +810,13 @@ public class YamlStorageProvider extends AbstractStorageProvider {
             List<String> invites = new ArrayList<>();
             ConfigurationSection invitesSection = data.getConfigurationSection("clan_invites." + clanName);
             if (invitesSection != null) {
-                invites.addAll(invitesSection.getKeys(false));
+                long cutoff = getInviteCutoff();
+                for (String player : invitesSection.getKeys(false)) {
+                    long timestamp = invitesSection.getLong(player, 0L);
+                    if (timestamp >= cutoff) {
+                        invites.add(player);
+                    }
+                }
             }
             return invites;
         } finally {
@@ -740,9 +850,52 @@ public class YamlStorageProvider extends AbstractStorageProvider {
     protected boolean isPlayerInvitedToClanImpl(String playerName, String clanName) throws Exception {
         lock.readLock().lock();
         try {
-            return data.contains("clan_invites." + clanName + "." + playerName);
+            String path = "clan_invites." + clanName + "." + playerName;
+            if (!data.contains(path)) {
+                return false;
+            }
+            long timestamp = data.getLong(path, 0L);
+            return timestamp >= getInviteCutoff();
         } finally {
             lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    protected void cleanupExpiredInvitesImpl(long cutoff) throws Exception {
+        lock.writeLock().lock();
+        try {
+            ConfigurationSection invitesSection = data.getConfigurationSection("clan_invites");
+            if (invitesSection == null) {
+                return;
+            }
+
+            boolean changed = false;
+            for (String clan : new ArrayList<>(invitesSection.getKeys(false))) {
+                ConfigurationSection clanSection = invitesSection.getConfigurationSection(clan);
+                if (clanSection == null) {
+                    continue;
+                }
+
+                for (String player : new ArrayList<>(clanSection.getKeys(false))) {
+                    long timestamp = clanSection.getLong(player, 0L);
+                    if (timestamp < cutoff) {
+                        clanSection.set(player, null);
+                        changed = true;
+                    }
+                }
+
+                if (clanSection.getKeys(false).isEmpty()) {
+                    invitesSection.set(clan, null);
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                saveData();
+            }
+        } finally {
+            lock.writeLock().unlock();
         }
     }
     

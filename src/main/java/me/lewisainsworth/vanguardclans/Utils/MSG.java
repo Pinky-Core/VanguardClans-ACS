@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 public class MSG {
 
     // Regex para encontrar códigos hex (#AABBCC)
-    private static final Pattern HEX_PATTERN = Pattern.compile("&#([A-Fa-f0-9]{6})");
+    private static final Pattern HEX_PATTERN = Pattern.compile("(?i)&(#?[a-f0-9]{6})");
 
     public static String color(String msg) {
         if (canUsePlaceholderAPI()) {
@@ -67,17 +67,19 @@ public class MSG {
     private static String translateHexColors(String message) {
         if (message == null) return null;
 
-        Pattern hexPattern = Pattern.compile("&#([A-Fa-f0-9]{6})");
-        Matcher matcher = hexPattern.matcher(message);
+        Matcher matcher = HEX_PATTERN.matcher(message);
         StringBuffer buffer = new StringBuffer();
 
         while (matcher.find()) {
             String hex = matcher.group(1);
+            if (hex.startsWith("#")) {
+                hex = hex.substring(1);
+            }
             StringBuilder replacement = new StringBuilder("§x");
             for (char c : hex.toCharArray()) {
                 replacement.append("§").append(c);
             }
-            matcher.appendReplacement(buffer, replacement.toString());
+            matcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement.toString()));
         }
 
         matcher.appendTail(buffer);
@@ -87,8 +89,8 @@ public class MSG {
 
 
     public static String stripColorCodes(String input) {
-        // Elimina hexadecimales tipo &#FFFFFF
-        input = input.replaceAll("(?i)&#[a-f0-9]{6}", "");
+        // Elimina hexadecimales tipo &#FFFFFF o &FFFFFF
+        input = input.replaceAll("(?i)&(#?[a-f0-9]{6})", "");
         // Elimina códigos &a, &l, etc.
         input = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', input));
         return input;

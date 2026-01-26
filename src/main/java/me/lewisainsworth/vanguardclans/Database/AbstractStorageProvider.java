@@ -64,7 +64,12 @@ public abstract class AbstractStorageProvider implements StorageProvider {
             return false;
         }
         ensureCacheFresh();
-        return clanNamesCache.contains(clanName.toLowerCase());
+        for (String cached : clanNamesCache) {
+            if (cached.equalsIgnoreCase(clanName)) {
+                return true;
+            }
+        }
+        return false;
     }
     
     @Override
@@ -243,7 +248,16 @@ public abstract class AbstractStorageProvider implements StorageProvider {
             return new ArrayList<>();
         }
     }
-    
+
+    @Override
+    public void cleanupExpiredInvites() {
+        try {
+            cleanupExpiredInvitesImpl(getInviteCutoff());
+        } catch (Exception e) {
+            plugin.getLogger().warning("Error cleaning up expired clan invites: " + e.getMessage());
+        }
+    }
+
     @Override
     public void addClanInvite(String clanName, String playerName) {
         try {
@@ -370,9 +384,41 @@ public abstract class AbstractStorageProvider implements StorageProvider {
     
     @Override
     public double getKillDeathRatio(String playerName) {
-        // This method needs to be implemented by each provider
-        // For now, return 0.0 as default
-        return 0.0;
+        if (playerName == null || playerName.trim().isEmpty()) {
+            return 0.0;
+        }
+        int kills = getPlayerKills(playerName);
+        int deaths = getPlayerDeaths(playerName);
+        if (deaths <= 0) {
+            return kills;
+        }
+        return (double) kills / deaths;
+    }
+
+    @Override
+    public int getPlayerKills(String playerName) {
+        if (playerName == null || playerName.trim().isEmpty()) {
+            return 0;
+        }
+        try {
+            return getPlayerKillsImpl(playerName);
+        } catch (Exception e) {
+            plugin.getLogger().severe("Error getting player kills for: " + playerName + ": " + e.getMessage());
+            return 0;
+        }
+    }
+
+    @Override
+    public int getPlayerDeaths(String playerName) {
+        if (playerName == null || playerName.trim().isEmpty()) {
+            return 0;
+        }
+        try {
+            return getPlayerDeathsImpl(playerName);
+        } catch (Exception e) {
+            plugin.getLogger().severe("Error getting player deaths for: " + playerName + ": " + e.getMessage());
+            return 0;
+        }
     }
     
     @Override
@@ -430,6 +476,81 @@ public abstract class AbstractStorageProvider implements StorageProvider {
             e.printStackTrace();
         }
     }
+
+    @Override
+    public void setClanColoredName(String clanName, String coloredName) {
+        if (clanName == null || clanName.trim().isEmpty()) {
+            return;
+        }
+        try {
+            updateClanNameImpl(clanName, clanName, coloredName);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public String getPlayerRole(String clanName, String playerName) {
+        if (clanName == null || clanName.trim().isEmpty() || playerName == null || playerName.trim().isEmpty()) {
+            return "member";
+        }
+        try {
+            String role = getPlayerRoleImpl(clanName, playerName);
+            return role == null || role.trim().isEmpty() ? "member" : role;
+        } catch (Exception e) {
+            plugin.getLogger().severe("Error getting player role for: " + playerName + ": " + e.getMessage());
+            return "member";
+        }
+    }
+
+    @Override
+    public void setPlayerRole(String clanName, String playerName, String role) {
+        if (clanName == null || clanName.trim().isEmpty() || playerName == null || playerName.trim().isEmpty()) {
+            return;
+        }
+        try {
+            setPlayerRoleImpl(clanName, playerName, role);
+        } catch (Exception e) {
+            plugin.getLogger().severe("Error setting player role for: " + playerName + ": " + e.getMessage());
+        }
+    }
+
+    @Override
+    public Map<String, Set<String>> getClanRoles(String clanName) {
+        if (clanName == null || clanName.trim().isEmpty()) {
+            return new HashMap<>();
+        }
+        try {
+            return getClanRolesImpl(clanName);
+        } catch (Exception e) {
+            plugin.getLogger().severe("Error getting clan roles for: " + clanName + ": " + e.getMessage());
+            return new HashMap<>();
+        }
+    }
+
+    @Override
+    public void setClanRole(String clanName, String role, Set<String> permissions) {
+        if (clanName == null || clanName.trim().isEmpty() || role == null || role.trim().isEmpty()) {
+            return;
+        }
+        try {
+            setClanRoleImpl(clanName, role, permissions == null ? Collections.emptySet() : permissions);
+        } catch (Exception e) {
+            plugin.getLogger().severe("Error setting clan role for: " + clanName + ": " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void deleteClanRole(String clanName, String role) {
+        if (clanName == null || clanName.trim().isEmpty() || role == null || role.trim().isEmpty()) {
+            return;
+        }
+        try {
+            deleteClanRoleImpl(clanName, role);
+        } catch (Exception e) {
+            plugin.getLogger().severe("Error deleting clan role for: " + clanName + ": " + e.getMessage());
+        }
+    }
     
     // Abstract methods that must be implemented by each provider
     protected abstract List<String> getClanMembersImpl(String clanName) throws Exception;
@@ -440,6 +561,8 @@ public abstract class AbstractStorageProvider implements StorageProvider {
     protected abstract boolean areClansAlliedImpl(String clan1, String clan2) throws Exception;
     protected abstract void incrementPlayerKillsImpl(String playerName) throws Exception;
     protected abstract void incrementPlayerDeathsImpl(String playerName) throws Exception;
+    protected abstract int getPlayerKillsImpl(String playerName) throws Exception;
+    protected abstract int getPlayerDeathsImpl(String playerName) throws Exception;
     protected abstract Location getClanHomeImpl(String clanName) throws Exception;
     protected abstract void setClanHomeImpl(String clanName, Location location) throws Exception;
     protected abstract List<String> getClanAlliancesImpl(String clanName) throws Exception;
@@ -448,6 +571,7 @@ public abstract class AbstractStorageProvider implements StorageProvider {
     protected abstract boolean getFriendlyFireImpl(String clanName) throws Exception;
     protected abstract void setFriendlyFireImpl(String clanName, boolean enabled) throws Exception;
     protected abstract List<String> getClanInvitesImpl(String clanName) throws Exception;
+    protected abstract void cleanupExpiredInvitesImpl(long cutoff) throws Exception;
     protected abstract void addClanInviteImpl(String clanName, String playerName) throws Exception;
     protected abstract void removeClanInviteImpl(String clanName, String playerName) throws Exception;
     protected abstract boolean isPlayerInvitedToClanImpl(String playerName, String clanName) throws Exception;
@@ -463,6 +587,11 @@ public abstract class AbstractStorageProvider implements StorageProvider {
     protected abstract boolean isFriendlyFireEnabledImpl(String clanName) throws Exception;
     protected abstract void setFriendlyFireEnabledImpl(String clanName, boolean enabled) throws Exception;
     protected abstract void updateClanNameImpl(String oldName, String newName, String newColoredName) throws Exception;
+    protected abstract String getPlayerRoleImpl(String clanName, String playerName) throws Exception;
+    protected abstract void setPlayerRoleImpl(String clanName, String playerName, String role) throws Exception;
+    protected abstract Map<String, Set<String>> getClanRolesImpl(String clanName) throws Exception;
+    protected abstract void setClanRoleImpl(String clanName, String role, Set<String> permissions) throws Exception;
+    protected abstract void deleteClanRoleImpl(String clanName, String role) throws Exception;
     
     // Helper method to ensure cache is fresh
     protected void ensureCacheFresh() {
@@ -470,6 +599,10 @@ public abstract class AbstractStorageProvider implements StorageProvider {
         if (currentTime - lastCacheUpdate > 300000) { // 5 minutes
             reloadCache();
         }
+    }
+
+    protected long getInviteCutoff() {
+        return System.currentTimeMillis() - StorageProvider.INVITE_EXPIRATION_MS;
     }
     
     // Helper method to parse location from string

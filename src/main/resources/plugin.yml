@@ -27,6 +27,10 @@ permissions:
     description: Permiso para ir a la home.
     default: false
 
+  vanguardclans.user.delhome:
+    description: Permiso para borrar la home del clan.
+    default: false
+
   vanguardclans.user.home:
     description: Permiso para home.
     default: false
@@ -90,6 +94,14 @@ permissions:
 
   vanguardclans.user.slots:
     description: Permiso para ver y mejorar los slots del clan.
+    default: false
+
+  vanguardclans.user.top:
+    description: Permiso para ver el ranking de clanes.
+    default: false
+
+  vanguardclans.user.rank:
+    description: Permiso para gestionar rangos del clan.
     default: false
 
   vanguardclans.user.accept:

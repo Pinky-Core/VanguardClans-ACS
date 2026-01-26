@@ -18,7 +18,7 @@
 ######################################################################
 
 
-prefix: "&7[&a&lᴠᴀɴɢᴜᴀʀᴅ&6&lᴄʟᴀɴꜱ&7]"
+prefix: "&7[&6&lᴠᴀɴɢᴜᴀʀᴅ&7&lᴄʟᴀɴꜱ&7]"
 
 
 commands:
@@ -89,8 +89,11 @@ clan_home:
   teleport_delay: 5 
 
 
+clan:
+  default-privacy: "private" # default privacy for newly created clans (public/private)
+
 nametag-privacy:
-  enabled: true
+  enabled: false
   provider: "internal" # internal / tab (si TAB esta instalado y eliges tab, el gestor interno no toca los scoreboards)
   mode: "obfuscate" # hide = oculta enemigos, reset = muestra a todos, obfuscate = muestra enemigos con &k
   bypass-permission: "" # deja vacío para que ni los ops bypassen
@@ -117,8 +120,13 @@ blocked-worlds:
 
 max-clans: 0 # 0 = ILIMITADO
 
-clan-slots:
+anti-multiaccount:
   enabled: true
+  max-clans-per-ip: 1
+  only-when-global-limit: true
+
+clan-slots:
+  enabled: false
   use-points: true
   # Si use-points es false, se usará este límite fijo (0 = ilimitado)
   static-limit: 0
@@ -159,3 +167,20 @@ names-blocked:
 discord:
   sql_status_webhook: "https://discord.com/api/webhooks/..."
   sql_status_interval_minutes: 10
+  webhooks:
+    new-clan:
+      enabled: false
+      url: ""
+      color: 3066993
+      message: "**New clan created:** {clan} (leader: {leader})"
+    top-leader:
+      enabled: false
+      url: ""
+      color: 3447003
+      message: "**{clan}** is now #1 in {metric} with {value}."
+      metrics:
+        - points
+        - kda
+        - money
+        - members
+      interval-seconds: 60

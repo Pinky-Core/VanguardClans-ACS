@@ -1,7 +1,5 @@
 package me.lewisainsworth.vanguardclans.Utils;
 
-import net.milkbowl.vault.economy.Economy;
-
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -12,6 +10,7 @@ import me.lewisainsworth.vanguardclans.VanguardClan;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -24,7 +23,12 @@ public class Econo {
     private final VanguardClan plugin;
     private String system;
 
-    public static Economy vault;
+    private Object vaultProvider;
+    private Class<?> vaultEconomyClass;
+    private Method vaultGetBalance;
+    private Method vaultHas;
+    private Method vaultDeposit;
+    private Method vaultWithdraw;
     private final Map<UUID, Double> internalBalances = new HashMap<>();
     private File balanceFile;
     private FileConfiguration balanceCfg;
@@ -50,75 +54,150 @@ public class Econo {
     }
 
     public boolean setupEconomy() {
-        switch (getSystem()) {
-            case "vault":
-                RegisteredServiceProvider<Economy> provider = getServer()
-                        .getServicesManager()
-                        .getRegistration(Economy.class);
-                vault = (provider != null) ? provider.getProvider() : null;
-                if (vault != null) return true;
-
-                Bukkit.getConsoleSender().sendMessage(MSG.color(prefix + "&cVault provider is null, using Internal Econ."));
-                system = "internal";
-                loadInternal();
+        String selected = getSystem();
+        if ("vault".equalsIgnoreCase(selected)) {
+            if (setupVault()) {
                 return true;
-
-            case "internal":
-                loadInternal();
-                return true;
-
-            default:
-                Bukkit.getConsoleSender().sendMessage(MSG.color(prefix + "&cEconomy system is null!: " + system));
-                return false;
+            }
+            Bukkit.getConsoleSender().sendMessage(MSG.color(prefix + "&cVault no disponible, usando economia interna."));
+            system = "internal";
+            loadInternal();
+            return true;
         }
+        if ("internal".equalsIgnoreCase(selected)) {
+            loadInternal();
+            return true;
+        }
+
+        Bukkit.getConsoleSender().sendMessage(MSG.color(prefix + "&cEconomy system is null!: " + system));
+        return false;
     }
 
     public double getBalance(OfflinePlayer player) {
-        return switch (getSystem()) {
-            case "vault" -> vault.getBalance(player);
-            case "internal" -> internalBalances.getOrDefault(player.getUniqueId(), 0.0);
-            default -> 0;
-        };
+        String selected = getSystem();
+        if ("vault".equalsIgnoreCase(selected)) {
+            return getVaultBalance(player);
+        }
+        if ("internal".equalsIgnoreCase(selected)) {
+            return internalBalances.getOrDefault(player.getUniqueId(), 0.0);
+        }
+        return 0;
     }
 
     public void deposit(OfflinePlayer player, double amount) {
         if (amount < 0) return;
-        switch (getSystem()) {
-            case "vault":
-                vault.depositPlayer(player, amount).transactionSuccess();
-                return;
-            case "internal":
-                internalBalances.merge(player.getUniqueId(), amount, Double::sum);
-                saveInternal();
-                return;
-            default:
+        String selected = getSystem();
+        if ("vault".equalsIgnoreCase(selected)) {
+            depositVault(player, amount);
+            return;
+        }
+        if ("internal".equalsIgnoreCase(selected)) {
+            internalBalances.merge(player.getUniqueId(), amount, Double::sum);
+            saveInternal();
         }
     }
 
     public void withdraw(OfflinePlayer player, double amount) {
         if (amount < 0) return;
-        switch (getSystem()) {
-            case "vault":
-                vault.withdrawPlayer(player, amount).transactionSuccess();
-                return;
-            case "internal":
-                UUID id = player.getUniqueId();
-                double current = internalBalances.getOrDefault(id, 0.0);
-                if (current < amount) return;
-                internalBalances.put(id, current - amount);
-                saveInternal();
-                return;
-            default:
+        String selected = getSystem();
+        if ("vault".equalsIgnoreCase(selected)) {
+            withdrawVault(player, amount);
+            return;
+        }
+        if ("internal".equalsIgnoreCase(selected)) {
+            UUID id = player.getUniqueId();
+            double current = internalBalances.getOrDefault(id, 0.0);
+            if (current < amount) return;
+            internalBalances.put(id, current - amount);
+            saveInternal();
         }
     }
 
     public boolean has(OfflinePlayer player, double amount) {
         if (amount < 0) return false;
-        return switch (getSystem()) {
-            case "vault" -> vault.has(player, amount);
-            case "internal" -> internalBalances.getOrDefault(player.getUniqueId(), 0.0) >= amount;
-            default -> false;
-        };
+        String selected = getSystem();
+        if ("vault".equalsIgnoreCase(selected)) {
+            return hasVault(player, amount);
+        }
+        if ("internal".equalsIgnoreCase(selected)) {
+            return internalBalances.getOrDefault(player.getUniqueId(), 0.0) >= amount;
+        }
+        return false;
+    }
+
+    private boolean setupVault() {
+        if (!Bukkit.getPluginManager().isPluginEnabled("Vault")) {
+            return false;
+        }
+        try {
+            vaultEconomyClass = Class.forName("net.milkbowl.vault.economy.Economy");
+            RegisteredServiceProvider<?> provider = getServer()
+                .getServicesManager()
+                .getRegistration(vaultEconomyClass);
+            vaultProvider = (provider != null) ? provider.getProvider() : null;
+            if (vaultProvider == null) {
+                return false;
+            }
+            cacheVaultMethods();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void cacheVaultMethods() throws NoSuchMethodException {
+        vaultGetBalance = vaultEconomyClass.getMethod("getBalance", OfflinePlayer.class);
+        vaultHas = vaultEconomyClass.getMethod("has", OfflinePlayer.class, double.class);
+        vaultDeposit = vaultEconomyClass.getMethod("depositPlayer", OfflinePlayer.class, double.class);
+        vaultWithdraw = vaultEconomyClass.getMethod("withdrawPlayer", OfflinePlayer.class, double.class);
+    }
+
+    private double getVaultBalance(OfflinePlayer player) {
+        if (vaultProvider == null || vaultGetBalance == null) {
+            return 0.0;
+        }
+        try {
+            Object result = vaultGetBalance.invoke(vaultProvider, player);
+            if (result instanceof Number) {
+                return ((Number) result).doubleValue();
+            }
+        } catch (Exception ignored) {
+        }
+        return 0.0;
+    }
+
+    private boolean hasVault(OfflinePlayer player, double amount) {
+        if (vaultProvider == null || vaultHas == null) {
+            return false;
+        }
+        try {
+            Object result = vaultHas.invoke(vaultProvider, player, amount);
+            if (result instanceof Boolean) {
+                return (Boolean) result;
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
+    }
+
+    private void depositVault(OfflinePlayer player, double amount) {
+        if (vaultProvider == null || vaultDeposit == null) {
+            return;
+        }
+        try {
+            vaultDeposit.invoke(vaultProvider, player, amount);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void withdrawVault(OfflinePlayer player, double amount) {
+        if (vaultProvider == null || vaultWithdraw == null) {
+            return;
+        }
+        try {
+            vaultWithdraw.invoke(vaultProvider, player, amount);
+        } catch (Exception ignored) {
+        }
     }
 
     private void loadInternal() {
