@@ -1,21 +1,26 @@
-######################################################################
-#                                                                    #
-#                     Placeholders disponibles:                      #
-#  ---------------------------------------------------------------   #
-#  | %vanguardclans_prefix%               : Plugin prefix         |  #
-#  | %vanguardclans_clan_leader%          : Clan leader's name    |  #
-#  | %vanguardclans_clan_founder%         : Clan founder's name   |  #
-#  | %vanguardclans_clan_name%            : Clan name             |  #
-#  | %vanguardclans_clan_tag%             : Clan tag              |  #
-#  | %vanguardclans_clan_money%           : Clan vault            |  #
-#  | %vanguardclans_clan_membercount_offline% : Offline members   |  #
-#  | %vanguardclans_clan_membercount_online%  : Online Members    |  #
-#  | %vanguardclans_clan_membercount%     : Total of members      |  #
-#  | %vanguardclans_player_money%         : Player's vault        |  #
-#  ---------------------------------------------------------------   #
-#           Now you can use PlaceholderAPI placeholders.             #
-#                                                                    #
-######################################################################
+#############################################################################
+#                                                                           #
+#                          Available Placeholders:                          #
+#  ----------------------------------------------------------------------   #
+#  | %vanguardclans_prefix%               : Plugin prefix                |  #
+#  | %vanguardclans_clan_leader%          : Clan leader's name           |  #
+#  | %vanguardclans_clan_founder%         : Clan founder's name          |  #
+#  | %vanguardclans_clan_name%            : Clan name                    |  #
+#  | %vanguardclans_clan_tag%             : Clan tag                     |  #
+#  | %vanguardclans_clan_money%           : Clan vault                   |  #
+#  | %vanguardclans_clan_membercount_offline% : Offline members          |  #
+#  | %vanguardclans_clan_membercount_online%  : Online Members           |  #
+#  | %vanguardclans_clan_membercount%     : Total of members             |  #
+#  | %vanguardclans_player_money%         : Player's vault               |  #
+#  | %vanguardclans_top_<metric>_<position>[_<field>]% : Top leaderboard |  #
+#  |   <metric>: kda, points, money, members                             |  #
+#  |   <position>: 1, 2, 3...                                            |  #
+#  |   <field>: tag, name, value, money, points, members, kills,         |  #
+#  |            deaths, kda, kda_total, kda_avg (default = value)        |  #
+#  ----------------------------------------------------------------------   #
+#              Now you can use PlaceholderAPI placeholders.                 #
+#                                                                           #
+#############################################################################
 
 
 prefix: "&7[&6&lᴠᴀɴɢᴜᴀʀᴅ&7&lᴄʟᴀɴꜱ&7]"
