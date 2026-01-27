@@ -2,18 +2,18 @@
 #                                                                    #
 #                     Placeholders disponibles:                      #
 #  ---------------------------------------------------------------   #
-#  | %vanguardclans_prefix%               : Prefijo del plugin      |  #
-#  | %vanguardclans_clan_leader%          : Nombre del líder        |  #
-#  | %vanguardclans_clan_founder%         : Nombre del fundador     |  #
-#  | %vanguardclans_clan_name%            : Nombre del clan         |  #
-#  | %vanguardclans_clan_tag%             : Tag del clan            |  #
-#  | %vanguardclans_clan_money%           : Bóveda del clan         |  #
-#  | %vanguardclans_clan_membercount_offline% : Miembros offline    |  #
-#  | %vanguardclans_clan_membercount_online%  : Miembros en línea   |  #
-#  | %vanguardclans_clan_membercount%     : Total de miembros       |  #
-#  | %vanguardclans_player_money%         : Bóveda del jugador      |  #
+#  | %vanguardclans_prefix%               : Plugin prefix         |  #
+#  | %vanguardclans_clan_leader%          : Clan leader's name    |  #
+#  | %vanguardclans_clan_founder%         : Clan founder's name   |  #
+#  | %vanguardclans_clan_name%            : Clan name             |  #
+#  | %vanguardclans_clan_tag%             : Clan tag              |  #
+#  | %vanguardclans_clan_money%           : Clan vault            |  #
+#  | %vanguardclans_clan_membercount_offline% : Offline members   |  #
+#  | %vanguardclans_clan_membercount_online%  : Online Members    |  #
+#  | %vanguardclans_clan_membercount%     : Total of members      |  #
+#  | %vanguardclans_player_money%         : Player's vault        |  #
 #  ---------------------------------------------------------------   #
-#       Ahora puedes usar los placeholders de PlaceholderAPI.        #
+#           Now you can use PlaceholderAPI placeholders.             #
 #                                                                    #
 ######################################################################
 
@@ -22,8 +22,8 @@ prefix: "&7[&6&lᴠᴀɴɢᴜᴀʀᴅ&7&lᴄʟᴀɴꜱ&7]"
 
 
 commands:
-  # Cuando es true, /clan sin argumentos muestra la pagina principal de ayuda.
-  # Cuando es false, /clan sin argumentos devolvera un mensaje de "No se encontro comando".
+  # When true, /clan without arguments will show the main help page.
+  # When false, /clan without arguments will return a "Command not found" message.
   show-main-help-page: true
 
 storage:
@@ -68,19 +68,19 @@ welcome-message:
 
   no-clan:
     - ""
-    - "¡Bienvenido de nuevo!"
-    - "Usa /clan create para crear tu clan."
+    - "¡Welcome Back!"
+    - "Use /clan create to create your clan."
     - ""
 
   self-clan:
     - ""
-    - "Estás en el clan %vanguardclans_clan_name%"
-    - "Miembros en línea: %vanguardclans_clan_membercount_online% / %vanguardclans_clan_membercount%"
+    - "You're on %vanguardclans_clan_name%"
+    - "Online Members: %vanguardclans_clan_membercount_online% / %vanguardclans_clan_membercount%"
     - ""
 
   to-clan:
     - ""
-    - "%player_name% se conectó"
+    - "%player_name% connected"
     - ""
 
 
@@ -94,22 +94,22 @@ clan:
 
 nametag-privacy:
   enabled: false
-  provider: "internal" # internal / tab (si TAB esta instalado y eliges tab, el gestor interno no toca los scoreboards)
-  mode: "obfuscate" # hide = oculta enemigos, reset = muestra a todos, obfuscate = muestra enemigos con &k
-  bypass-permission: "" # deja vacío para que ni los ops bypassen
-  show-no-clan-names: true # valor por defecto para jugadores sin clan si no configuras visibility.no-clan
+  provider: "internal" # internal / tab / unt (unt = UnlimitedNametags, tab = TAB)
+  mode: "obfuscate" # none / hide / obfuscate
+  bypass-permission: "" # permission to bypass nametag privacy effects (ej: vanguardclans.nametag.bypass)
+  show-no-clan-names: true # default value to show/hide nametags of players without clan
   visibility:
     same-clan: "always"        # always / hideforotherteams / hideforownteam / never
-    enemy-clan: "always"        # oculta los clanes enemigos
-    no-clan: "always"          # muestra a los que no tienen clan
+    enemy-clan: "always"        # hide enemy teams
+    no-clan: "always"          # show players without clan
   obfuscate:
     enabled: true
     relations:
       - "enemy-clan"          # same-clan / enemy-clan / no-clan
-    prefix: "&k######"         # prefijo usado para aplicar el efecto &k
-    reset: "&r"                # se aplica al final para no contaminar otros textos
-  force-override: true # re-asigna el scoreboard del jugador para imponerse a otros plugins de nametag
-  refresh-interval-ticks: 20 # cada cuantos ticks se re-aplica (>=20). Bajalo si otro plugin pisa el scoreboard.
+    prefix: "&k######"         # prefix apply to obfuscated nametags
+    reset: "&r"                # reset code after obfuscated nametags
+  force-override: true # force override other nametag plugins (may cause conflicts)
+  refresh-interval-ticks: 20 # interval to refresh nametags (in ticks, 20 ticks = 1 second)
 
 
 blocked-worlds:
@@ -118,7 +118,7 @@ blocked-worlds:
   - parkoureventos
 
 
-max-clans: 0 # 0 = ILIMITADO
+max-clans: 0 # 0 = unlimited
 
 anti-multiaccount:
   enabled: true
@@ -128,9 +128,9 @@ anti-multiaccount:
 clan-slots:
   enabled: false
   use-points: true
-  # Si use-points es false, se usará este límite fijo (0 = ilimitado)
+  # When use-points is false, this is the maximum number of slots a clan can buy (0 = unlimited).
   static-limit: 0
-  # Slots base cuando el sistema de puntos está activo
+  # Base slots and points per kill (if use-points is true)
   base-slots: 5
   points-per-kill: 1
   upgrades:
@@ -141,12 +141,12 @@ clan-slots:
 
 
 clan-name:
-  # Limite de caracteres visibles (los colores no cuentan). 0 = sin limite.
+  # Charact. limitations for clan names (0 = unlimited)
   max-length: 16
 
 economy:
   enabled: true
-  system: "Vault" # Vault / Internal (VanguardClans sistema de economía)
+  system: "Vault" # Vault / Internal (VanguardClans economy system)
 
   cost:
     create-clan: 1000
