@@ -39,13 +39,13 @@ user:
   slots_unlimited: "\u221e"
 
   # HELP COMMAND
-  invalid_page_help: "&c PÃ¡gina invÃ¡lida. Usa /clan help <1-{total_pages}>"
+  invalid_page_help: "&c Página inválida. Usa /clan help <1-{total_pages}>"
   help_header: "&6&m====================================="
-  help_title: "&6&l>> &6&lVanguard&7&lClans &e&lAyuda &7(PÃ¡gina {page}/{total_pages})"
+  help_title: "&6&l>> &6&lVanguard&7&lClans &e&lAyuda &7(Página {page}/{total_pages})"
   help_footer: "&6&m====================================="
-  help_previous_page: "&e<< PÃ¡gina anterior "
-  help_next_page: "&e PÃ¡gina siguiente >>"
-  help_click_to_page: "Haz clic para ir a la pÃ¡gina {page}"
+  help_previous_page: "&e<< Página anterior "
+  help_next_page: "&e Página siguiente >>"
+  help_click_to_page: "Haz clic para ir a la página {page}"
   help_lines:
     - "&e> &f&lCREATE &7- &fCrea un clan nuevo y comienza tu aventura."
     - "&e> &f&lJOIN &7- &fÃšnete a un clan y haz nuevos aliados."
@@ -53,18 +53,18 @@ user:
     - "&e> &f&lINVITE &7- &fInvita jugadores valiosos a tu clan."
     - "&e> &f&lLEAVE &7- &fSal de tu clan con honor y respeto."
     - "&e> &f&lDISBAND &7- &fDisuelve tu clan cuando sea necesario."
-    - "&e> &f&lKICK &7- &fExpulsa jugadores problemÃ¡ticos."
+    - "&e> &f&lKICK &7- &fExpulsa jugadores problemáticos."
     - "&e> &f&lFF &7- &fActiva o desactiva el fuego amigo."
     - "&e> &f&lALLY &7- &fForma alianzas con otros clanes."
     - "&e> &f&lCHAT &7- &fComunÃ­cate en privado con tu clan."
     - "&e> &f&lSTATS &7- &fRevisa el progreso y logros de tu clan."
     - "&e> &f&lINFO  &7- &fAbre la GUI de miembros para ver cualquier clan."
     - "&e> &f&lLIST &7- &fExplora los clanes del servidor."
-    - "&e> &f&lREPORT &7- &fReporta clanes problemÃ¡ticos."
+    - "&e> &f&lREPORT &7- &fReporta clanes problemáticos."
     - "&e> &f&lEDIT &7- &fModifica detalles y privacidad."
     - "&e> &f&lECONOMY &7- &fGestiona el banco del clan."
     - "&e> &f&lRESIGN &7- &fRenuncia al liderazgo con dignidad."
-    - "&e> &f&lHELP &7- &fMuestra este menÃº de ayuda."
+    - "&e> &f&lHELP &7- &fMuestra este menú de ayuda."
 
   # KICK COMMAND
   usage_kick: "&c &lUSO:&f /clan kick <jugador>"
@@ -311,6 +311,10 @@ msg:
   admin_repair_success: "&a¡Reparación completada! Se arreglaron &f{count} &aproblemas de liderazgo de clanes."
   admin_repair_error: "&cOcurrió un error al reparar el liderazgo de clanes. Revisa la consola."
 
+  
+  admin_points_usage: "&cUso: /clanadmin points <clan> <cantidad>"
+  admin_points_success: "&aSe han agregado &f{points} &apuntos al clan &f{clan}"
+
 
   # HELP COMMAND
   help:
@@ -386,9 +390,6 @@ lang:
   lang_not_found: "&cIdioma no encontrado."
   menu_header: "&6&m-----------------------------"
   menu_footer: "&6&m-----------------------------"
-
-  admin_points_usage: "&cUso: /clanadmin points <clan> <cantidad>"
-  admin_points_success: "&aSe han agregado &f{points} &apuntos al clan &f{clan}"
 
 
 gui:

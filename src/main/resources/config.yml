@@ -144,6 +144,22 @@ clan-slots:
     - cost: 50
       slots: 3
 
+gui:
+  privacy:
+    public: "&aPublic"
+    private: "&cPrivate"
+  role-labels:
+    leader: "&cLeader"
+    co-leader: "&6Co-Leader"
+    member: "&7Member"
+  display:
+    clan-name-template: "{colored}"
+    top-clan-name-template: "{colored}"
+    member-name-template: "{status}{player}"
+    member-status:
+      online: "&a"
+      offline: "&7"
+
 
 clan-name:
   # Charact. limitations for clan names (0 = unlimited)

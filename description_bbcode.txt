@@ -1,0 +1,140 @@
+[CENTER][SIZE=6][B]VanguardClans | Advanced Clan System for Spigot[/B][/SIZE]
+[SIZE=4]Create, manage, and grow legendary clans with GUI dashboards, privacy controls, leaderboards, and full localization.[/SIZE]
+[SIZE=3][I]YAML • SQLite • MariaDB • Multilingual • PlaceholderAPI • TAB/UnlimitedNametags • Discord Webhooks • Anti-multiaccount[/I][/SIZE]
+
+[IMG]https://i.imgur.com/hRABm91.png[/IMG]
+[SIZE=5][B]Installation[/B][/SIZE]
+[LIST=1]
+[ *]Download the latest build of VanguardClans.
+[ *]Drop [ICODE]VanguardClans.jar[/ICODE] inside your [ICODE]/plugins[/ICODE] folder.
+[ *]Edit [ICODE]config.yml[/ICODE] to pick storage (YAML/SQLite/MariaDB), nametag provider (internal/TAB/UnlimitedNametags), webhook targets, and anti-multiaccount limits.
+[ *]Restart your server or run [ICODE]/clanadmin reload[/ICODE] and let the plugin generate defaults.
+[ *]Optional: install PlaceholderAPI, TAB/UnlimitedNametags, and choose your language with [ICODE]/clanadmin lang select <code>[/ICODE].
+[/LIST]
+
+[IMG]https://i.imgur.com/UzuEmHU.png[/IMG]
+
+[SIZE=5][B]⚙️ Requirements[/B][/SIZE]
+[LIST]
+[ *]Paper or Spigot 1.20+ (any Bukkit-compatible fork) running on Java 17+.
+[ *]Optional PlaceholderAPI for placeholders and TAB/UnlimitedNametags for advanced nametag privacy.
+[ *]Scale as needed: lightweight YAML for small servers or SQLite/MariaDB pools for large networks with cloud-ready configs.
+[/LIST]
+
+
+[IMG]https://i.imgur.com/CIjBXfS.png[/IMG]
+
+[SIZE=5][B]⌨️ Player Commands[/B][/SIZE]
+[SPOILER="Show Player Commands"]
+[ICODE]/clan help [page][/ICODE] — opens the GUI or text help board.
+[ICODE]/clan info [clan][/ICODE] — shows clan members, ranks, KDA, points, vault, and relations.
+[ICODE]/clan create <name>[/ICODE]
+[ICODE]/clan invite <player>[/ICODE]
+[ICODE]/clan join <clan>[/ICODE]
+[ICODE]/clan leave[/ICODE]
+[ICODE]/clan kick <player>[/ICODE]
+[ICODE]/clan resign[/ICODE]
+[ICODE]/clan disband[/ICODE]
+[ICODE]/clan edit name <newname>[/ICODE]
+[ICODE]/clan edit privacy <public/private>[/ICODE]
+[ICODE]/clan sethome[/ICODE] / [ICODE]/clan home[/ICODE] / [ICODE]/clan delhome[/ICODE]
+[ICODE]/clan chat <message>[/ICODE] / [ICODE]/clan chat[/ICODE]
+[ICODE]/clan stats [clan][/ICODE]
+[ICODE]/clan list[/ICODE]
+[ICODE]/clan top <kda|points|money|members> [page][/ICODE]
+[ICODE]/clan ff <on/off>[/ICODE]
+[ICODE]/clan ally request/accept/decline/remove/ff[/ICODE]
+[ICODE]/clan slots[/ICODE] / [ICODE]/clan slots buy[/ICODE]
+[ICODE]/clan economy[/ICODE] / [ICODE]/clan economy deposit <amount>[/ICODE] / [ICODE]/clan economy withdraw <amount>[/ICODE]
+[ICODE]/clan report <clan> <reason>[/ICODE]
+[CODE]…plus tab completions for stats, invites, and allies.[/CODE]
+[/SPOILER]
+
+[SIZE=5][B]🛠️ Admin Commands[/B][/SIZE]
+[SPOILER="Show Admin Commands"]
+[ICODE]/clanadmin reload[/ICODE]
+[ICODE]/clanadmin reports[/ICODE]
+[ICODE]/clanadmin ban <clan> [reason][/ICODE]
+[ICODE]/clanadmin unban <clan>[/ICODE]
+[ICODE]/clanadmin clear[/ICODE]
+[ICODE]/clanadmin fix confirm[/ICODE]
+[ICODE]/clanadmin repair confirm[/ICODE]
+[ICODE]/clanadmin points <clan> <amount>[/ICODE]
+[ICODE]/clanadmin sqlstatus[/ICODE]
+[ICODE]/clanadmin lang[/ICODE]
+[ICODE]/clanadmin lang select <code>[/ICODE]
+[ICODE]/clanadmin forcejoin <clan> <player>[/ICODE]
+[ICODE]/clanadmin forceleave <player>[/ICODE]
+[ICODE]/clanadmin delete <clan>[/ICODE]
+[ICODE]/clanadmin tickets[/ICODE]
+[ICODE]/clanadmin history <player|clan>[/ICODE]
+[ICODE]/clanadmin slots reset <clan>[/ICODE]
+[ICODE]/clanadmin webhook test[/ICODE]
+[SPOILER]Migration helpers, storage repair, and cache commands keep data tidy.[/SPOILER]
+[/SPOILER]
+
+[SIZE=5][B]Permissions[/B][/SIZE]
+[SPOILER="Show Permissions"]
+[ICODE]vanguardclans.admin[/ICODE]
+[ICODE]vanguardclans.user.create[/ICODE]
+[ICODE]vanguardclans.user.info[/ICODE]
+[ICODE]vanguardclans.user.join[/ICODE]
+[ICODE]vanguardclans.user.leave[/ICODE]
+[ICODE]vanguardclans.user.disband[/ICODE]
+[ICODE]vanguardclans.user.kick[/ICODE]
+[ICODE]vanguardclans.user.sethome[/ICODE]
+[ICODE]vanguardclans.user.home[/ICODE]
+[ICODE]vanguardclans.user.delhome[/ICODE]
+[ICODE]vanguardclans.user.chat[/ICODE]
+[ICODE]vanguardclans.user.stats[/ICODE]
+[ICODE]vanguardclans.user.top[/ICODE]
+[ICODE]vanguardclans.user.slots[/ICODE]
+[ICODE]vanguardclans.user.ff[/ICODE]
+[ICODE]vanguardclans.user.ally[/ICODE]
+[ICODE]vanguardclans.user.economy[/ICODE]
+[ICODE]vanguardclans.user.report[/ICODE]
+[ICODE]vanguardclans.user.accept[/ICODE]
+[ICODE]vanguardclans.user.decline[/ICODE]
+[ICODE]vanguardclans.user.resign[/ICODE]
+[ICODE]vanguardclans.user.rank[/ICODE]
+[ICODE]vanguardclans.user.topgui[/ICODE]
+[ICODE]vanguardclans.user.invite[/ICODE]
+[ICODE]vanguardclans.user.chat.toggle[/ICODE]
+[ICODE]vanguardclans.user.nametag.bypass[/ICODE]
+[ICODE]vanguardclans.bypass.homecooldown[/ICODE]
+[ICODE]vanguardclans.bypass.homedelay[/ICODE]
+[ICODE]vanguardclans.bypass.nametag[/ICODE]
+[ICODE]vanguardclans.metrics.view[/ICODE]
+[ICODE]vanguardclans.webhook.manage[/ICODE]
+[SPOILER]Extend with custom permissions per GUI tab or clan role.[/SPOILER]
+[/SPOILER]
+
+[IMG]https://i.imgur.com/5aD2GCH.png[/IMG]
+
+[SIZE=5][B]Features[/B][/SIZE]
+[LIST]
+[ *]Public/private clans with hierarchical roles, slots, friendly fire toggles, teleport homes, and auto-cleanup when empty.
+[ *]Alliance system with requests, accept/decline/removal, friendly fire control, and invite auto-expiry every 5 minutes.
+[ *]Slot upgrades fueled by points, kills, and configurable costs plus `/clan slots` overview and buy wizard.
+[ *]Dynamic GUIs for members, allies, invites, and tops showing KDA, total kills/deaths, points, money, and member count.
+[ *]Leaderboard placeholders `%vanguardclans_top_<metric>_<position>[_<field]%` for KDA, points, money, members, kills, deaths, and combined stats.
+[ *]Nametag privacy that hooks into the internal scoreboard, TAB, or UnlimitedNametags and supports obfuscation, hide, or reset modes.
+[ *]Anti-multiaccount safeguards that can limit clan creation per IP whenever the global `max-clans` cap is reached.
+[ *]Discord webhooks for new clan creation and leaderboard shifts, fully toggleable in `config.yml` with separate channels.
+[ *]Multi-language engine with English/Spanish defaults, easy-to-edit `[lang/<code>.yml]`, and `/clanadmin lang select`.
+[ *]Storage-agnostic: YAML, SQLite, MariaDB with Hikari, full migrations, cache refresh, and stats/history APIs.
+[ *]Lightweight, modular architecture built for high concurrency while leaving room for subsection hooks (TAB, nametags, unlimited, webhooks).
+[/LIST]
+
+[SIZE=5][B]Language Support[/B][/SIZE]
+Translate every string in [ICODE]/lang[/ICODE], create your own locale, and switch with [ICODE]/clanadmin lang select <code>[/ICODE] without restarting.
+
+[IMG]https://i.imgur.com/E2d24iZ.png[/IMG]
+
+[SIZE=5][B]Support & Contact[/B][/SIZE]
+Need help or want to request features?
+[URL='https://discord.gg/QkzxM22cSE']discord.gg/PinkyCore[/URL]
+
+[SIZE=4][B]⚔️ Empower your players. Unite clans, guard privacy, and let the stats speak.[/B]
+[COLOR=green][B]Download VanguardClans today and turn every server into a clan epicenter.[/B][/COLOR][/SIZE]
+[/CENTER]

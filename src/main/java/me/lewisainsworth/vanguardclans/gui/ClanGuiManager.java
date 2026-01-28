@@ -11,6 +11,7 @@ import me.lewisainsworth.vanguardclans.Utils.TopMetric;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -28,6 +29,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -39,6 +41,10 @@ public class ClanGuiManager implements Listener {
     private static final int SMALL_SIZE = 27;
     private static final int LARGE_SIZE = 54;
     private static final int PAGE_SIZE = 45;
+    private static final int MEMBERS_SLOT_DEPOSIT = 40;
+    private static final int MEMBERS_SLOT_WITHDRAW = 42;
+    private static final int MEMBERS_SLOT_ADD = 44;
+    private static final int MEMBERS_SLOT_REMOVE = 52;
 
     private final VanguardClan plugin;
     private final LangManager lang;
@@ -200,7 +206,8 @@ public class ClanGuiManager implements Listener {
         lore.add(lang.getMessage("gui.info_kda_total").replace("{kda}", formatDecimal(stats.getTotalKda())));
         lore.add(lang.getMessage("gui.info_kda_avg").replace("{kda}", formatDecimal(stats.getAverageKda())));
 
-        inv.setItem(13, createItem(Material.BOOK, MSG.color(stats.getColoredName()), lore));
+        String displayName = formatClanDisplayName(player, clan, "clan-name-template");
+        inv.setItem(13, createItem(Material.BOOK, displayName, lore));
         inv.setItem(26, createItem(Material.BARRIER, lang.getMessage("gui.item_back"), null));
 
         fill(inv);
